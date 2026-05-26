@@ -14,8 +14,8 @@ The planning is done. Tonight is two small jobs:
 
 - [x] Sign up for Voyage AI — DONE per Tom
 - [x] Move files to iCloud for disk space — DONE per Tom
-- [ ] Hand `plans/claude-design-spec.md` to Claude Design for overnight iteration
-- [ ] **Sleep**
+- [X] Hand `plans/claude-design-spec.md` to Claude Design for overnight iteration
+- [X] **Sleep**
 
 Email to Lee can wait until Tuesday morning (Lee won't see it tonight anyway).
 
@@ -25,19 +25,19 @@ Email to Lee can wait until Tuesday morning (Lee won't see it tonight anyway).
 
 ### Morning (9:00 - 12:30)
 
-- [ ] **9:00** — Send email to Lee from `taskandemails/email-to-lee-2026-05-25.md`. Verify Gav is CC'd. Hit send.
+- [X] **9:00** — Send email to Lee from `taskandemails/email-to-lee-2026-05-25.md`. Verify Gav is CC'd. Hit send.
 - [x] **9:15** — Review Claude Design output (came in overnight). ✅ DONE — Iteration 3 (Claude × RiverAI Hybrid) selected. See `plans/design-decision-locked.md` for record + 6 must-do tweaks before the Next.js stretch build.
-- [ ] **10:00** — Open Pinecone dashboard. Verify fresh project `isq-agent` + index `isq-agent-knowledge` (1024 dims) exists. Copy API key to local notes.
-- [ ] **10:15** — Initialise repo: `mkdir ~/Repos/isq-agent && cd ~/Repos/isq-agent && git init`
-- [ ] **10:20** — Copy planning artefacts:
+- [x] **10:00** — Open Pinecone dashboard. Verify fresh project `isq-agent` + index `isq-agent-knowledge` (1024 dims) exists. Copy API key to local notes.
+- [x] **10:15** — Initialise repo: `mkdir ~/Repos/isq-agent && cd ~/Repos/isq-agent && git init`
+- [x] **10:20** — Copy planning artefacts:
   ```bash
   cp -r ~/Repos/RiverAICodeAssesmentPlan/plans ~/Repos/isq-agent/plans
   ```
-- [ ] **10:25** — Create `.gitignore`, `LICENSE` (MIT, copy from Morpheus), `.env.example`. **Do not commit** `source-corpus/` (gitignored per Audit 3 decision).
-- [ ] **10:35** — Save all API keys to `.env` (local, not committed): `VOYAGE_API_KEY`, `ANTHROPIC_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX=isq-agent-knowledge`
-- [ ] **10:45** — First commit: `chore: initial scaffolding with plans folder`
-- [ ] **11:00** — Plan 2 Manual Coding Exercise 1: type Voyage client wrapper. Run smoke test.
-- [ ] **11:45** — Commit: `feat(voyage): add voyage embedding client wrapper`
+- [x] **10:25** — Create `.gitignore`, `LICENSE` (MIT, copy from Morpheus), `.env.example`. **Do not commit** `source-corpus/` (gitignored per Audit 3 decision).
+- [X] **10:35** — Save all API keys to `.env` (local, not committed): `VOYAGE_API_KEY`, `ANTHROPIC_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX=isq-agent-knowledge`
+- [x] **10:45** — First commit: `chore: initial scaffolding with plans folder`
+- [X] **11:00** — Plan 2 Manual Coding Exercise 1: type `Voyage client wrapper. Run smoke test.
+- [X] **11:45** — Commit: `feat(voyage): add voyage embedding client wrapper`
 
 Lunch break.
 
