@@ -1,0 +1,67 @@
+# ---------- Secrets ----------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ---------- Source corpus (RiverAI's assessment material) ----------
+source-corpus/
+!source-corpus/README.md
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+*.egg
+build/
+dist/
+.venv/
+venv/
+env/
+
+# ---------- Node / Next.js ----------
+node_modules/
+.next/
+.turbo/
+out/
+.pnpm-store/
+*.tsbuildinfo
+.npm/
+
+# ---------- n8n ----------
+n8n_data/
+.n8n/
+
+# ---------- Output artefacts ----------
+outputs/
+*.docx
+*.xlsx
+*.pdf
+!docs/*.pdf
+!design/**/*.pdf
+
+# ---------- IDEs / OS ----------
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- Eval results ----------
+eval/results/

@@ -1,0 +1,44 @@
+# ============================================================
+# ISQ Agent — local stack
+# n8n workflow engine + rag-service Python API
+# ============================================================
+# Spec: plans/plan-02-stack-lockin.md Section 5
+# Mac M1/M2: platform tag included per Audit 3
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: isq-agent-n8n
+    platform: linux/arm64  # drop on Linux x86_64 hosts
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+      - GENERIC_TIMEZONE=Europe/London
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+      - N8N_LOG_LEVEL=info
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./source-corpus:/source-corpus:ro
+    depends_on:
+      - rag-service
+
+  rag-service:
+    build: ./rag-service
+    container_name: isq-agent-rag
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./source-corpus:/source-corpus:ro
+
+volumes:
+  n8n_data:

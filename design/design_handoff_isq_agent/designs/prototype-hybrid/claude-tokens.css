@@ -1,0 +1,258 @@
+/* ============================================================
+   Claude Design System — Tokens
+   Colors, type, spacing, radii, shadows.
+   Light mode is default; .dark on <html> or <body> swaps.
+   ============================================================ */
+
+/* ---------- Font imports (Google Fonts substitutions) ---------- */
+/* Styrene A/B (proprietary) ≈ Geist
+   Tiempos Text/Headline (proprietary) ≈ Source Serif 4
+   Styrene Mono ≈ Geist Mono                                       */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&display=swap');
+
+:root {
+  /* ---------- Brand ---------- */
+  --claude-orange:        #CC785C;   /* Crail — the canonical brand orange */
+  --claude-orange-bright: #D97757;   /* marketing / hover */
+  --claude-orange-soft:   #E6A88F;   /* tints, focus rings at low alpha */
+  --claude-orange-deep:   #A65A43;   /* pressed / on-light text accent */
+  --manilla:              #F0EEE5;   /* warm cream paper */
+  --manilla-deep:         #E8E6DC;   /* hairline borders on paper */
+  --slate-dark:           #191919;   /* warm charcoal */
+  --cloud-light:          #FAF9F5;   /* lightest paper */
+
+  /* ---------- Surfaces — Light (default) ---------- */
+  --bg-0:   #FAF9F5;   /* page */
+  --bg-1:   #F5F4EE;   /* warmer surface, secondary panel */
+  --bg-2:   #F0EEE5;   /* quiet card */
+  --bg-3:   #E8E6DC;   /* hover wash */
+  --bg-inv: #262624;   /* inverse / dark island */
+
+  /* Foreground */
+  --fg-1:   #191919;   /* primary text */
+  --fg-2:   #3D3D3A;   /* heading-supporting / strong */
+  --fg-3:   #5C5B57;   /* secondary text */
+  --fg-4:   #8A8880;   /* tertiary / meta */
+  --fg-5:   #B4B1A6;   /* disabled */
+  --fg-on-accent: #FAF9F5;
+
+  /* Borders */
+  --border-1: #E8E6DC;   /* hairlines */
+  --border-2: #D9D6CA;   /* stronger hairlines, dividers in lists */
+  --border-3: #C4C0B2;   /* input borders */
+  --border-focus: rgba(204, 120, 92, 0.4);
+
+  /* Semantic — used sparingly */
+  --success:  #4A7C59;
+  --warning:  #C97A2B;
+  --danger:   #B5443A;
+  --info:     #3B6B8F;
+
+  /* Accents in context */
+  --accent:        var(--claude-orange);
+  --accent-hover:  var(--claude-orange-deep);
+  --accent-soft:   rgba(204, 120, 92, 0.10);
+  --accent-soft-2: rgba(204, 120, 92, 0.18);
+
+  /* ---------- Shadows ---------- */
+  --shadow-xs: 0 1px 2px rgba(60, 40, 20, 0.04);
+  --shadow-sm: 0 2px 6px rgba(60, 40, 20, 0.05);
+  --shadow-md: 0 4px 12px rgba(60, 40, 20, 0.06);
+  --shadow-lg: 0 8px 24px rgba(60, 40, 20, 0.08);
+  --shadow-xl: 0 20px 48px rgba(60, 40, 20, 0.10);
+  --shadow-focus: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--border-focus);
+
+  /* ---------- Radii ---------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;   /* buttons, chips */
+  --radius-lg: 16px;   /* inputs, composer, cards */
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-pill: 9999px;
+
+  /* ---------- Spacing (8px grid) ---------- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ---------- Type families ---------- */
+  --font-sans:  "Geist", "Styrene A Web", "Styrene B Web", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", "Tiempos Text", "Tiempos Headline", ui-serif, Georgia, serif;
+  --font-mono:  "Geist Mono", "Styrene Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---------- Type scale ---------- */
+  --fs-display: 64px;   /* marketing hero */
+  --fs-h1:      40px;
+  --fs-h2:      32px;
+  --fs-h3:      24px;
+  --fs-h4:      20px;
+  --fs-body:    16px;
+  --fs-body-sm: 14px;
+  --fs-caption: 13px;
+  --fs-micro:   12px;
+
+  /* Serif reading scale (used inside chat) */
+  --fs-serif-h1: 32px;
+  --fs-serif-h2: 24px;
+  --fs-serif-body: 17px;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* Line heights */
+  --lh-tight:   1.1;
+  --lh-snug:    1.25;
+  --lh-normal:  1.45;
+  --lh-relaxed: 1.6;
+  --lh-reading: 1.7;
+
+  /* Letter spacing */
+  --ls-tight:   -0.02em;
+  --ls-snug:    -0.01em;
+  --ls-normal:   0;
+  --ls-wide:    0.04em;
+
+  /* ---------- Motion ---------- */
+  --ease:       cubic-bezier(0.2, 0.6, 0.2, 1);
+  --ease-out:   cubic-bezier(0, 0, 0.2, 1);
+  --dur-fast:   120ms;
+  --dur-base:   180ms;
+  --dur-slow:   280ms;
+
+  /* ---------- Layout ---------- */
+  --sidebar-w:  280px;
+  --composer-max: 760px;
+  --reading-max: 720px;
+  --page-max:   1200px;
+}
+
+/* ---------- Dark mode ---------- */
+:root.dark, .dark {
+  --bg-0:   #262624;
+  --bg-1:   #2A2A28;
+  --bg-2:   #30302E;
+  --bg-3:   #3A3A37;
+  --bg-inv: #FAF9F5;
+
+  --fg-1:   #FAF9F5;
+  --fg-2:   #E5E3DC;
+  --fg-3:   #B4B1A6;
+  --fg-4:   #8A8880;
+  --fg-5:   #5C5B57;
+  --fg-on-accent: #FAF9F5;
+
+  --border-1: #3A3A37;
+  --border-2: #4A4A47;
+  --border-3: #5C5B57;
+  --border-focus: rgba(217, 119, 87, 0.45);
+
+  --accent:        var(--claude-orange-bright);
+  --accent-hover:  var(--claude-orange);
+  --accent-soft:   rgba(217, 119, 87, 0.14);
+  --accent-soft-2: rgba(217, 119, 87, 0.22);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Base resets / element defaults ---------- */
+html, body {
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Semantic type ---------- */
+.display, .t-display {
+  font-family: var(--font-sans);
+  font-size: var(--fs-display);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+h1, .t-h1 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+}
+h2, .t-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-snug);
+}
+h3, .t-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-snug);
+}
+h4, .t-h4 {
+  font-family: var(--font-sans);
+  font-size: var(--fs-h4);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-normal);
+}
+p, .t-body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-1);
+}
+.t-body-sm { font-size: var(--fs-body-sm); line-height: var(--lh-relaxed); }
+.t-caption { font-size: var(--fs-caption); color: var(--fg-3); line-height: var(--lh-normal); }
+.t-micro   { font-size: var(--fs-micro);   color: var(--fg-4); letter-spacing: var(--ls-wide); text-transform: uppercase; }
+.t-mono, code, kbd, pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* Serif reading surface — used for assistant responses */
+.t-serif {
+  font-family: var(--font-serif);
+  font-size: var(--fs-serif-body);
+  line-height: var(--lh-reading);
+  color: var(--fg-1);
+}
+.t-serif-h1 { font-family: var(--font-serif); font-size: var(--fs-serif-h1); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+.t-serif-h2 { font-family: var(--font-serif); font-size: var(--fs-serif-h2); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+
+/* Links */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+a:hover { text-decoration: underline; color: var(--accent-hover); }
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

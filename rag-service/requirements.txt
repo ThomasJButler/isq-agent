@@ -1,0 +1,35 @@
+# ============================================================
+# ISQ Agent RAG service — Python dependencies
+# Pinned per Plan 2 Section 4 (Audit 3 gotcha — Pinecone v5 API)
+# ============================================================
+
+# ---------- Web framework ----------
+fastapi>=0.115.0,<0.116.0
+uvicorn[standard]>=0.32.0,<0.33.0
+pydantic>=2.9.0,<3.0.0
+pydantic-settings>=2.5.0,<3.0.0
+
+# ---------- LLM + embeddings ----------
+anthropic>=0.34.0,<1.0.0
+voyageai>=0.2.0,<1.0.0
+
+# ---------- Vector store ----------
+# CRITICAL: pin to v5 — Morpheus modules use v5 API, v6 has breaking changes
+pinecone>=5.0,<6.0
+
+# ---------- Document processing ----------
+pypdf>=4.0.0,<5.0.0
+openpyxl>=3.1.0,<4.0.0
+python-docx>=1.1.0,<2.0.0
+reportlab>=4.0.0,<5.0.0
+
+# ---------- Text utilities ----------
+langchain-text-splitters>=0.3.0,<1.0.0
+
+# ---------- HTTP ----------
+httpx>=0.27.0,<1.0.0
+
+# ---------- Dev ----------
+pytest>=8.3.0,<9.0.0
+pytest-asyncio>=0.24.0,<1.0.0
+ruff>=0.6.0,<1.0.0
