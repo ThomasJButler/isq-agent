@@ -16,8 +16,8 @@ Status and sequencing live in `IMPLEMENTATION_PLAN.md` and `plans/` (12 iterativ
 ## Essential Commands
 
 ```bash
-# Setup (Python 3.14)
-cd rag-service && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+# Setup (Python 3.11)
+cd rag-service && python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
 # Dev server (:8000, auto-reload)
 cd rag-service && source .venv/bin/activate && uvicorn app.main:app --reload
