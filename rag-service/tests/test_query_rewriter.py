@@ -106,3 +106,16 @@ def test_rewriter_uses_isq_specific_prompt(mock_anthropic):
 
     _, kwargs = mock_client.messages.create.call_args
     assert "security questionnaire" in kwargs["system"].lower()
+
+
+@patch("app.rag.query_rewriter.Anthropic")
+def test_rewriter_handles_empty_content_response(mock_anthropic):
+    """Model returns no content blocks → rewrite() returns '' instead of IndexError."""
+    from app.rag.query_rewriter import QueryRewriter
+
+    mock_client = mock_anthropic.return_value
+    mock_client.messages.create.return_value.content = []  # empty content list
+
+    rewriter = QueryRewriter(api_key="test-key")
+
+    assert rewriter.rewrite("Do you use MFA?") == ""

@@ -74,4 +74,9 @@ class QueryRewriter:
             system=SYSTEM_PROMPT,
             messages=[{"role": "user", "content": query}],
         )
+        # An empty content list (e.g. stop_reason=max_tokens with no output) would
+        # make response.content[0] raise IndexError — fall back to "" so the
+        # retriever's empty-query guard drops it cleanly.
+        if not response.content:
+            return ""
         return response.content[0].text.strip()
