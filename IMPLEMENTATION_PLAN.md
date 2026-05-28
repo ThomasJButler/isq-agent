@@ -18,8 +18,12 @@
 - 4 smoke tests for FastAPI scaffold (passing)
 - 8 tests for chunking module (written, committed)
 - 6 tests for document processor (written, committed, **6/6 passing**)
+- 6 tests for Pinecone client (written, committed, **6/6 passing**)
+- **Full suite: 24/24 passing**
 
 **Latest validations:**
+- `pytest tests/test_pinecone_client.py -v` — 6/6 passing (TDD red→green confirmed)
+- `pytest -v` (full suite) — 24/24 passing, no regressions
 - `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.14)
 - `pytest tests/test_main_smoke.py -v` — 4/4 passing
 - `uvicorn app.main:app` — server starts, structured JSON logging works, no secrets logged
@@ -34,7 +38,7 @@
 
 ## Active phase
 
-Branch A — Chunking + Document Processor (TDD-first)
+Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ complete + committed; next is the `/index` endpoint.
 
 ## Ordered checklist
 
@@ -82,18 +86,23 @@ Branch A — Chunking + Document Processor (TDD-first)
 
 ### Branch B (feature/pinecone-indexer)
 
-- [ ] Checkout: `git checkout -b feature/pinecone-indexer`
-- [ ] Write `rag-service/tests/test_pinecone_client.py` (5 tests)
+- [ ] Checkout: `git checkout -b feature/pinecone-indexer` — **deferred**: Branch A is not yet merged to main (push/PR/merge are manual, pending), so the Pinecone client slice was committed on `feature/chunking-and-processor` to avoid carrying unmerged Branch A commits into a B branch. Re-establish proper branch separation once Branch A merges.
+- [x] Write `rag-service/tests/test_pinecone_client.py` (6 tests — 5 from plan + 1 added for the locked ≤100 batching constraint)
   - test_pinecone_client_initialises
   - test_pinecone_client_handles_missing_index
   - test_upsert_chunks_succeeds (mocked)
+  - test_upsert_chunks_batches_over_100 (mocked — guards the 100-vector batch limit)
   - test_query_returns_matches (mocked)
   - test_query_filters_by_min_score
-- [ ] Implement `rag-service/app/core/pinecone_client.py`
+- [x] Run `pytest tests/test_pinecone_client.py -v` — confirmed TDD red phase (AttributeError: `app.core` has no attribute `pinecone_client`)
+- [x] Implement `rag-service/app/core/pinecone_client.py`
   - PineconeClient class with upsert_chunks(), query() methods
-  - Metadata schema from plan-04 Section 4
+  - Connects to a named v5 index; raises `PineconeIndexError` if absent
   - Batched upsert (limit 100 vectors per call)
-- [ ] Commit: `git add tests/test_pinecone_client.py app/core/pinecone_client.py && git commit -m "test+feat(pinecone): add pinecone client with batched upsert and metadata schema"`
+  - `query()` normalises SDK/dict responses to plain dicts and filters by min_score (default 0.5)
+  - Note: metadata schema (plan-04 Section 4) + vector IDs are built upstream by `/index` (next slice); the client upserts pre-built `{id, values, metadata}` vectors. Source weighting stays in the retriever (Branch C).
+- [x] Run `pytest tests/test_pinecone_client.py -v` — **6/6 passing**; full suite **24/24 passing**
+- [x] Commit: `test+feat(pinecone): add pinecone client with batched upsert and min_score filtering`
 - [ ] Write `rag-service/tests/test_index_endpoint.py` (5 tests with TestClient + mocked Pinecone)
   - test_index_endpoint_returns_200
   - test_index_endpoint_chunks_corpus
@@ -187,16 +196,22 @@ Branch A — Chunking + Document Processor (TDD-first)
 
 ## Next recommended build slice
 
-**Branch A code is complete and committed.** Remaining Branch A steps (push, PR, squash-merge, cleanup) are manual git operations the auto-loop does not perform.
+**Pinecone client is complete and committed** (6/6 tests, batched upsert + min_score filtering). The remaining Branch B code slice is the **`POST /index` endpoint** (TDD-first).
 
-Next code slice is the start of **Branch B (feature/pinecone-indexer)** — TDD red phase for the Pinecone client:
+Write `rag-service/tests/test_index_endpoint.py` with 5 test cases (TestClient + mocked Pinecone, Voyage, and document_processor — no live calls):
+1. test_index_endpoint_returns_200 — POST /index returns 200 + summary JSON
+2. test_index_endpoint_chunks_corpus — indexes all files from source-corpus/
+3. test_index_endpoint_is_idempotent — second call with force_reindex=false → "already_indexed"
+4. test_index_endpoint_force_reindex — force_reindex=true deletes all vectors then reindexes
+5. test_index_endpoint_reports_metrics — response includes chunks/documents indexed, tokens, cost, latency
 
-Write `rag-service/tests/test_pinecone_client.py` with 5 test cases from plan-04 Section 4 (use mocks for the Pinecone SDK — no live calls):
-1. test_pinecone_client_initialises — client constructs from config/env
-2. test_pinecone_client_handles_missing_index — clear error when index absent
-3. test_upsert_chunks_succeeds — mocked upsert returns success
-4. test_query_returns_matches — mocked query returns match list
-5. test_query_filters_by_min_score — matches below min_score (0.5) dropped
+After writing, run `source .venv/bin/activate && pytest tests/test_index_endpoint.py -v` and confirm the TDD red phase (currently `app/api/index.py` is a bare router stub). Then implement `POST /index` per plan-04 Section 5 flow, wiring together:
+- `document_processor.process_document` (extract text/rows)
+- `detect_source_type(filename)` (policy vs historical_isq — fail loudly on "unknown")
+- `chunking` (policy: section-aware 500/50; ISQ: one chunk per Q&A) — **build the plan-04 Section 4 metadata schema + Section-4 vector IDs HERE** (the client upserts pre-built vectors)
+- `VoyageClient.embed_documents` (batched embeddings + cost)
+- `PineconeClient.upsert_chunks` (batched upsert)
+- idempotency via `index.describe_index_stats()` vector count
 
-After writing, run `cd rag-service && source .venv/bin/activate && pytest tests/test_pinecone_client.py -v` and confirm ModuleNotFoundError (expected TDD red phase). Then implement `rag-service/app/core/pinecone_client.py` with the metadata schema from plan-04 Section 4 and batched upsert (≤100 vectors/call).
+**Blocker to resolve during that slice:** `PineconeClient` has no `delete_all`/stats method yet — `force_reindex` + idempotency need one. Add `describe_stats()` and a delete-all path to the client (with mocked tests) as part of the /index slice, or as a small preceding client extension.
 
