@@ -57,19 +57,31 @@ class TestVoyageClient:
 
     @patch("app.voyage.client.voyageai.Client")
     def test_embed_documents_handles_batching(self, mock_client_class, monkeypatch):
-        """1500 texts should trigger 2 batches (1000 + 500)."""
+        """1500 texts → 2 batches of 1000 + 500, all embeddings + tokens returned."""
         monkeypatch.setenv("VOYAGE_API_KEY", "test-key")
-        mock_client_class.return_value.embed.return_value = MagicMock(
-            embeddings=[[0.1] * 1024] * 1000,
-            total_tokens=1000,
-        )
+
+        # Size each mocked response to its batch so the return length and token
+        # total reflect real batching — not a fixed stub that hides mis-slicing.
+        def fake_embed(texts, **kwargs):
+            return MagicMock(
+                embeddings=[[0.1] * 1024] * len(texts),
+                total_tokens=len(texts),
+            )
+
+        embed = mock_client_class.return_value.embed
+        embed.side_effect = fake_embed
 
         client = VoyageClient()
-        texts = ["text"] * 1500
-        client.embed_documents(texts)
+        vectors = client.embed_documents(["text"] * 1500)
 
-        # MAX_BATCH_SIZE is 1000, so 1500 texts → exactly 2 embed() calls.
-        assert mock_client_class.return_value.embed.call_count == 2
+        # MAX_BATCH_SIZE is 1000, so 1500 texts → batches of exactly 1000 then 500.
+        assert embed.call_count == 2
+        assert [len(call.kwargs["texts"]) for call in embed.call_args_list] == [
+            1000,
+            500,
+        ]
+        assert len(vectors) == 1500
+        assert client.tokens_used == 1500
 
     @patch("app.voyage.client.voyageai.Client")
     def test_embed_documents_uses_document_input_type(

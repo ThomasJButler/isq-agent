@@ -94,7 +94,7 @@ def test_chunk_overlap_preserves_context():
         cur_tokens = chunks[i]["text"].split()
         next_chunk = chunks[i + 1]["text"]
         # The trailing tokens of one chunk should reappear at the start of the next.
-        assert any(tok in next_chunk for tok in cur_tokens[-3:]), (
+        assert any(tok in next_chunk.split() for tok in cur_tokens[-3:]), (
             "adjacent chunks share no overlap region"
         )
 
