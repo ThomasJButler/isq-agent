@@ -1,0 +1,43 @@
+# Pre-commit hooks for isq-agent
+# Install once:   pip install pre-commit && pre-commit install
+# Run manually:   pre-commit run --all-files
+#
+# The local pytest / matrix-strip hooks call rag-service/.venv directly, so the
+# virtualenv must exist (see CLAUDE.md "Essential Commands" for setup). ruff is
+# pinned to 0.15.15 here, in rag-service/requirements.txt, and in CI so the three
+# never disagree on formatting.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=1000"] # block accidentally committing the corpus
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.15
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (rag-service)
+        entry: bash -c 'cd rag-service && .venv/bin/pytest -x --tb=short'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: matrix-strip
+        name: matrix-strip leakage guard
+        entry: bash -c 'cd rag-service && .venv/bin/pytest tests/test_isq_prompts_no_matrix_leakage.py -q'
+        language: system
+        files: ^rag-service/app/.*\.py$
+        pass_filenames: false
