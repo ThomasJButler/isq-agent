@@ -3,9 +3,6 @@ Tests for the document processor module (Plan 4).
 Written FIRST per TDD discipline. Implementation in app/utils/document_processor.py follows.
 """
 
-import tempfile
-from pathlib import Path
-
 import pytest
 
 
@@ -72,6 +69,7 @@ def sample_docx_path(tmp_path):
     # Create a minimal valid DOCX using python-docx
     try:
         from docx import Document
+
         doc = Document()
         doc.add_paragraph("This is test DOCX content.")
         doc.add_paragraph("Second paragraph in DOCX.")
@@ -90,19 +88,20 @@ def sample_xlsx_path(tmp_path):
     # Create a minimal valid XLSX using openpyxl
     try:
         from openpyxl import Workbook
+
         wb = Workbook()
         ws = wb.active
 
         # Header row
-        ws['A1'] = 'Question'
-        ws['B1'] = 'Answer'
+        ws["A1"] = "Question"
+        ws["B1"] = "Answer"
 
         # Data rows
-        ws['A2'] = 'Do you use MFA?'
-        ws['B2'] = 'Yes, MFA is mandatory for all cloud platforms.'
+        ws["A2"] = "Do you use MFA?"
+        ws["B2"] = "Yes, MFA is mandatory for all cloud platforms."
 
-        ws['A3'] = 'Where is customer data stored?'
-        ws['B3'] = 'Customer data is stored in UK data centers.'
+        ws["A3"] = "Where is customer data stored?"
+        ws["B3"] = "Customer data is stored in UK data centers."
 
         wb.save(str(xlsx_path))
     except ImportError:

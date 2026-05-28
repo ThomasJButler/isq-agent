@@ -43,7 +43,7 @@ class VoyageClient:
         """
         all_embeddings = []
         for i in range(0, len(texts), self.MAX_BATCH_SIZE):
-            batch = texts[i:i + self.MAX_BATCH_SIZE]
+            batch = texts[i : i + self.MAX_BATCH_SIZE]
             result = self.client.embed(
                 texts=batch,
                 model=self.model,
@@ -55,7 +55,4 @@ class VoyageClient:
 
     def get_cost_estimate(self) -> float:
         """Return cumulative cost in USD based on self.tokens_used."""
-        return (self.tokens_used / 1_000_000) * self.COST_PER_MILLION_TOKENS 
-     
-
-                           
+        return (self.tokens_used / 1_000_000) * self.COST_PER_MILLION_TOKENS

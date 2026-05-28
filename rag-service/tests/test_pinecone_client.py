@@ -63,7 +63,11 @@ def test_upsert_chunks_succeeds(mock_pinecone):
         {
             "id": "isp-s1-c0",
             "values": [0.1] * 1024,
-            "metadata": {"source": "policy.pdf", "source_type": "policy", "text": "MFA is mandatory."},
+            "metadata": {
+                "source": "policy.pdf",
+                "source_type": "policy",
+                "text": "MFA is mandatory.",
+            },
         }
     ]
     result = client.upsert_chunks(chunks)
@@ -107,7 +111,11 @@ def test_query_returns_matches(mock_pinecone):
     mock_index = mock_pc.Index.return_value
     mock_index.query.return_value = {
         "matches": [
-            {"id": "isp-s1-c0", "score": 0.91, "metadata": {"source": "policy.pdf", "text": "MFA..."}},
+            {
+                "id": "isp-s1-c0",
+                "score": 0.91,
+                "metadata": {"source": "policy.pdf", "text": "MFA..."},
+            },
         ]
     }
 

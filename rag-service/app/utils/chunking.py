@@ -43,7 +43,13 @@ def chunk_text(
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", ". ", " ", ""],  # Prefer paragraph > line > sentence > word
+        separators=[
+            "\n\n",
+            "\n",
+            ". ",
+            " ",
+            "",
+        ],  # Prefer paragraph > line > sentence > word
         length_function=len,
     )
 

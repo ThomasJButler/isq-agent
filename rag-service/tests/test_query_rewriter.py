@@ -11,8 +11,6 @@ text is returned, and an empty query short-circuits with NO LLM call.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 # Helpers
 

@@ -13,6 +13,7 @@ from pypdf import PdfReader
 
 class DocumentProcessingError(Exception):
     """Raised when document processing fails."""
+
     pass
 
 
@@ -75,10 +76,12 @@ def _process_pdf(file_path: Path) -> dict[str, Any]:
             # pypdf returns None for image-only/scanned/blank pages — coerce to ""
             # so "\n".join(all_text) below never hits a NoneType.
             page_text = page.extract_text() or ""
-            pages.append({
-                "page_number": page_num,
-                "text": page_text,
-            })
+            pages.append(
+                {
+                    "page_number": page_num,
+                    "text": page_text,
+                }
+            )
             all_text.append(page_text)
 
         return {
@@ -137,7 +140,10 @@ def _process_xlsx(file_path: Path) -> dict[str, Any]:
         for row_idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
             if row_idx == 1:
                 # First row is header
-                header_row = [str(cell).lower() if cell else f"col_{i}" for i, cell in enumerate(row)]
+                header_row = [
+                    str(cell).lower() if cell else f"col_{i}"
+                    for i, cell in enumerate(row)
+                ]
                 continue
 
             # Skip empty rows
@@ -152,7 +158,9 @@ def _process_xlsx(file_path: Path) -> dict[str, Any]:
 
                     # Normalize column names for question/answer detection
                     if "question" in col_name:
-                        row_dict["question_text"] = str(cell_value) if cell_value else ""
+                        row_dict["question_text"] = (
+                            str(cell_value) if cell_value else ""
+                        )
                     elif "answer" in col_name:
                         row_dict["answer_text"] = str(cell_value) if cell_value else ""
                     else:

@@ -32,7 +32,9 @@ def fake_corpus_files():
     """Two files mirroring the real corpus shape: one policy PDF, one ISQ DOCX."""
     return [
         Path("Northstar Labs Policies/Northstar_Labs_Information_Security_Policy.pdf"),
-        Path("Northstar Labs Completed ISQs/Northstar_Labs_Previous_ISQ_Completed_02.docx"),
+        Path(
+            "Northstar Labs Completed ISQs/Northstar_Labs_Previous_ISQ_Completed_02.docx"
+        ),
     ]
 
 
@@ -59,7 +61,9 @@ def _make_pinecone_mock(mock_pinecone_cls, vector_count=0):
     instance = mock_pinecone_cls.return_value
     instance.describe_stats.return_value = {"total_vector_count": vector_count}
     instance.delete_all = MagicMock()
-    instance.upsert_chunks.side_effect = lambda vectors: {"upserted_count": len(vectors)}
+    instance.upsert_chunks.side_effect = lambda vectors: {
+        "upserted_count": len(vectors)
+    }
     return instance
 
 
@@ -67,7 +71,9 @@ def _make_voyage_mock(mock_voyage_cls):
     """Configure the patched VoyageClient class and return the instance mock."""
     instance = mock_voyage_cls.return_value
     # One 4-dim vector per text, aligned by index
-    instance.embed_documents.side_effect = lambda texts: [[0.1, 0.2, 0.3, 0.4] for _ in texts]
+    instance.embed_documents.side_effect = lambda texts: [
+        [0.1, 0.2, 0.3, 0.4] for _ in texts
+    ]
     instance.tokens_used = 1280
     instance.get_cost_estimate.return_value = 0.00023
     return instance

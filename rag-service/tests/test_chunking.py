@@ -8,6 +8,7 @@ import pytest
 
 # Test fixtures — reusable test data
 
+
 @pytest.fixture
 def short_text():
     """Text that fits in one chunk."""
@@ -69,26 +70,33 @@ def test_chunk_size_respects_max(long_text):
 
     chunks = chunk_text(long_text, chunk_size=500, chunk_overlap=50)
     for chunk in chunks:
-        assert len(chunk["text"]) <= 500, f"Chunk exceeded max size: {len(chunk['text'])}"
+        assert len(chunk["text"]) <= 500, (
+            f"Chunk exceeded max size: {len(chunk['text'])}"
+        )
 
 
-def test_chunk_overlap_preserves_context(long_text):
-    """Adjacent chunks share chunk_overlap chars (50)."""
+def test_chunk_overlap_preserves_context():
+    """Adjacent chunks share an overlap region when text is split mid-content.
+
+    Section-aware splitting on "\\n\\n" can yield adjacent chunks with NO overlap
+    (clean paragraph breaks below chunk_size). Overlap only manifests when a
+    continuous run exceeds chunk_size and is split on a finer separator — so we
+    test with continuous, distinct, space-separated tokens where the 50-char
+    overlap is guaranteed to carry trailing tokens into the next chunk.
+    """
     from app.utils.chunking import chunk_text
 
-    chunks = chunk_text(long_text, chunk_size=200, chunk_overlap=50)
+    text = " ".join(f"token{i:03d}" for i in range(300))  # distinct, space-separated
+    chunks = chunk_text(text, chunk_size=200, chunk_overlap=50)
 
-    if len(chunks) > 1:
-        # Check that adjacent chunks overlap
-        for i in range(len(chunks) - 1):
-            current_chunk = chunks[i]["text"]
-            next_chunk = chunks[i + 1]["text"]
-
-            # The end of current chunk should appear in next chunk
-            # (overlap implementation may vary, so we check for partial overlap)
-            overlap_candidate = current_chunk[-50:] if len(current_chunk) >= 50 else current_chunk
-            # Simple check: some text from end of current appears in next
-            assert len(overlap_candidate) > 0
+    assert len(chunks) > 1
+    for i in range(len(chunks) - 1):
+        cur_tokens = chunks[i]["text"].split()
+        next_chunk = chunks[i + 1]["text"]
+        # The trailing tokens of one chunk should reappear at the start of the next.
+        assert any(tok in next_chunk for tok in cur_tokens[-3:]), (
+            "adjacent chunks share no overlap region"
+        )
 
 
 def test_chunks_preserve_metadata(short_text, sample_metadata):
