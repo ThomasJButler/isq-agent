@@ -147,3 +147,36 @@ def test_query_filters_by_min_score(mock_pinecone):
     ids = [m["id"] for m in matches]
     assert ids == ["a", "c"]
     assert all(m["score"] >= 0.5 for m in matches)
+
+
+@patch("app.core.pinecone_client.Pinecone")
+def test_describe_stats_returns_count(mock_pinecone):
+    """describe_stats() normalises the SDK stats object to a plain vector count."""
+    from app.core.pinecone_client import PineconeClient
+
+    mock_pc = _mock_pc_with_index(mock_pinecone, ["isq-agent-knowledge"])
+    mock_index = mock_pc.Index.return_value
+    mock_index.describe_index_stats.return_value = {
+        "total_vector_count": 42,
+        "namespaces": {},
+    }
+
+    client = PineconeClient(api_key="k", index_name="isq-agent-knowledge")
+    stats = client.describe_stats()
+
+    assert stats["total_vector_count"] == 42
+    mock_index.describe_index_stats.assert_called_once()
+
+
+@patch("app.core.pinecone_client.Pinecone")
+def test_delete_all_clears_index(mock_pinecone):
+    """delete_all() wipes every vector — needed for force_reindex idempotency."""
+    from app.core.pinecone_client import PineconeClient
+
+    mock_pc = _mock_pc_with_index(mock_pinecone, ["isq-agent-knowledge"])
+    mock_index = mock_pc.Index.return_value
+
+    client = PineconeClient(api_key="k", index_name="isq-agent-knowledge")
+    client.delete_all()
+
+    mock_index.delete.assert_called_once_with(delete_all=True)

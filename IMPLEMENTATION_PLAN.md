@@ -18,12 +18,14 @@
 - 4 smoke tests for FastAPI scaffold (passing)
 - 8 tests for chunking module (written, committed)
 - 6 tests for document processor (written, committed, **6/6 passing**)
-- 6 tests for Pinecone client (written, committed, **6/6 passing**)
-- **Full suite: 24/24 passing**
+- 8 tests for Pinecone client (6 original + 2 for describe_stats/delete_all, **8/8 passing**)
+- 5 tests for /index endpoint (written, **5/5 passing**)
+- **Full suite: 31/31 passing**
 
 **Latest validations:**
-- `pytest tests/test_pinecone_client.py -v` — 6/6 passing (TDD red→green confirmed)
-- `pytest -v` (full suite) — 24/24 passing, no regressions
+- `pytest tests/test_index_endpoint.py -v` — 5/5 passing (TDD red→green confirmed)
+- `pytest tests/test_pinecone_client.py -v` — 8/8 passing (added describe_stats + delete_all)
+- `pytest -v` (full suite) — 31/31 passing, no regressions
 - `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.14)
 - `pytest tests/test_main_smoke.py -v` — 4/4 passing
 - `uvicorn app.main:app` — server starts, structured JSON logging works, no secrets logged
@@ -38,7 +40,7 @@
 
 ## Active phase
 
-Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ complete + committed; next is the `/index` endpoint.
+Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ and `/index` endpoint ✅ complete + validated. Branch B code is done; remaining Branch B steps are the live smoke test (needs API keys) + manual git ops. Next code slice is **Branch C** (query rewriter + retriever).
 
 ## Ordered checklist
 
@@ -103,24 +105,30 @@ Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ complete + commit
   - Note: metadata schema (plan-04 Section 4) + vector IDs are built upstream by `/index` (next slice); the client upserts pre-built `{id, values, metadata}` vectors. Source weighting stays in the retriever (Branch C).
 - [x] Run `pytest tests/test_pinecone_client.py -v` — **6/6 passing**; full suite **24/24 passing**
 - [x] Commit: `test+feat(pinecone): add pinecone client with batched upsert and min_score filtering`
-- [ ] Write `rag-service/tests/test_index_endpoint.py` (5 tests with TestClient + mocked Pinecone)
+- [x] Add `describe_stats()` + `delete_all()` to `PineconeClient` (idempotency prereq) with 2 mocked tests — **8/8 passing**
+- [x] Write `rag-service/tests/test_index_endpoint.py` (5 tests with TestClient + mocked Pinecone/Voyage/document_processor)
   - test_index_endpoint_returns_200
   - test_index_endpoint_chunks_corpus
   - test_index_endpoint_is_idempotent
   - test_index_endpoint_force_reindex
   - test_index_endpoint_reports_metrics
-- [ ] Implement `POST /index` in `rag-service/app/api/index.py`
-  - Check Pinecone stats (vector count)
-  - If count > 0 and not force_reindex → return "already_indexed"
-  - Read source-corpus/, process via document_processor
-  - Chunk via chunking.py
-  - Embed via Voyage client
-  - Upsert to Pinecone
-  - Return metrics: chunks_indexed, documents_indexed, indexing_time_ms, embedding_tokens_used, estimated_cost_usd
-- [ ] Run smoke test: `curl -X POST http://localhost:8000/index -d '{"force_reindex":true}' -H "Content-Type: application/json"`
-- [ ] Verify Pinecone dashboard: ~70 vectors appear
-- [ ] Commit: `git add tests/test_index_endpoint.py app/api/index.py && git commit -m "test+feat(api): implement /index endpoint with force_reindex flag"`
-- [ ] Push, PR, squash-merge, cleanup
+- [x] Run pytest — confirmed TDD red phase (AttributeError on patch targets / missing client methods)
+- [x] Implement `POST /index` in `rag-service/app/api/index.py` — **5/5 passing**
+  - Checks Pinecone stats; count > 0 and not force_reindex → "already_indexed"
+  - `detect_source_type()` (fails loudly on "unknown"); `discover_corpus_files()` recurses, .pdf/.docx only
+  - Per-page chunking for PDFs (accurate page metadata), single-blob for DOCX
+  - Builds plan-04 Section 4 metadata schema + stable vector IDs HERE
+  - Single batched Voyage embed call; batched Pinecone upsert
+  - Returns metrics: status, chunks_indexed, documents_indexed, indexing_time_ms, embedding_tokens_used, estimated_cost_usd
+- [x] Run pytest again — **5/5 passing**; full suite **31/31 passing**
+- [ ] Run smoke test: `curl -X POST http://localhost:8000/index -d '{"force_reindex":true}' -H "Content-Type: application/json"` — **deferred**: needs live Voyage + Pinecone API keys (out of scope for auto-loop)
+- [ ] Verify Pinecone dashboard: ~70 vectors appear — **deferred** (depends on live smoke test)
+- [x] Commit: `test+feat(api): implement /index endpoint with force_reindex flag`
+- [ ] Push, PR, squash-merge, cleanup — manual git ops
+
+**Deviations recorded during this slice (read before Branch C / live indexing):**
+- **Vector IDs:** plan-04 Section 4 specified section-number IDs (`isp-s3-c0`). Section numbers aren't reliably extractable from chunk text, so IDs are page/chunk-based instead: `{short_code}-p{page}-c{idx}` for PDFs, `{short_code}-c{idx}` for DOCX. Still **stable + deterministic** (re-indexing the same corpus regenerates identical IDs → clean upsert replace), which is the property that mattered.
+- **`isq_question_text` is always `None`:** the real historical ISQs are PDF/DOCX free text, not Q&A-structured rows. Per-Q&A splitting + populating `isq_question_text` needs a real Q&A parser. For now ISQ docs use the same text/page chunking as policies, tagged `source_type="historical_isq"` (which is what source weighting actually keys on). **Follow-up:** add a Q&A parser to populate `isq_question_text` if retrieval quality on ISQs proves weak (Plan 6/9 eval).
 
 ### Branch C (feature/query-rewriter-and-retriever)
 
@@ -196,22 +204,22 @@ Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ complete + commit
 
 ## Next recommended build slice
 
-**Pinecone client is complete and committed** (6/6 tests, batched upsert + min_score filtering). The remaining Branch B code slice is the **`POST /index` endpoint** (TDD-first).
+**Branch B code is complete** (`/index` endpoint 5/5, Pinecone client 8/8, full suite 31/31). Remaining Branch B items are the live smoke test (needs API keys) + manual git ops — both out of scope for the auto-loop. The next code slice is **Branch C — query rewriter** (TDD-first).
 
-Write `rag-service/tests/test_index_endpoint.py` with 5 test cases (TestClient + mocked Pinecone, Voyage, and document_processor — no live calls):
-1. test_index_endpoint_returns_200 — POST /index returns 200 + summary JSON
-2. test_index_endpoint_chunks_corpus — indexes all files from source-corpus/
-3. test_index_endpoint_is_idempotent — second call with force_reindex=false → "already_indexed"
-4. test_index_endpoint_force_reindex — force_reindex=true deletes all vectors then reindexes
-5. test_index_endpoint_reports_metrics — response includes chunks/documents indexed, tokens, cost, latency
+Write `rag-service/tests/test_query_rewriter.py` with 5 test cases (mocked Anthropic client — no live calls):
+1. test_rewriter_expands_acronyms — "MFA" → "multi-factor authentication" in output
+2. test_rewriter_preserves_intent — original topic preserved
+3. test_rewriter_adds_policy_vocabulary — output includes policy-doc terms
+4. test_rewriter_handles_empty_query — empty string → empty string, NO LLM call
+5. test_rewriter_uses_isq_specific_prompt — system prompt mentions "security questionnaire" or similar
 
-After writing, run `source .venv/bin/activate && pytest tests/test_index_endpoint.py -v` and confirm the TDD red phase (currently `app/api/index.py` is a bare router stub). Then implement `POST /index` per plan-04 Section 5 flow, wiring together:
-- `document_processor.process_document` (extract text/rows)
-- `detect_source_type(filename)` (policy vs historical_isq — fail loudly on "unknown")
-- `chunking` (policy: section-aware 500/50; ISQ: one chunk per Q&A) — **build the plan-04 Section 4 metadata schema + Section-4 vector IDs HERE** (the client upserts pre-built vectors)
-- `VoyageClient.embed_documents` (batched embeddings + cost)
-- `PineconeClient.upsert_chunks` (batched upsert)
-- idempotency via `index.describe_index_stats()` vector count
+After writing, run `source .venv/bin/activate && pytest tests/test_query_rewriter.py -v` and confirm the TDD red phase (no `app/rag/query_rewriter.py` yet). Then implement per plan-04 Section 6:
+- `QueryRewriter` class using the Anthropic client (model `claude-sonnet-4-5` from `settings.anthropic_model`)
+- System prompt verbatim from plan-04 Section 6 (acronym expansion, policy vocabulary, output-only-the-query rule)
+- Short-circuit empty/whitespace queries → return "" without any LLM call
+- Return the rewritten query string
 
-**Blocker to resolve during that slice:** `PineconeClient` has no `delete_all`/stats method yet — `force_reindex` + idempotency need one. Add `describe_stats()` and a delete-all path to the client (with mocked tests) as part of the /index slice, or as a small preceding client extension.
+Then the retriever slice (`test_retriever.py` + `app/rag/retriever.py`) wires query_rewriter → Voyage embed → Pinecone query → source weighting (policies ×1.0, historical_isqs ×0.95) → min_score 0.5, top_k 5.
+
+**Note for live indexing later:** the `/index` endpoint constructs `PineconeClient()` and `VoyageClient()` at request time — both need valid API keys in the repo-root `.env`. The Pinecone index `isq-agent-knowledge` must exist (it does) before the first real `curl POST /index`.
 

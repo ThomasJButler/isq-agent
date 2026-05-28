@@ -79,6 +79,32 @@ class PineconeClient:
 
         return {"upserted_count": total}
 
+    def describe_stats(self) -> dict[str, Any]:
+        """
+        Report index statistics, normalised to a plain dict.
+
+        Used by /index for idempotency: a populated index (vector_count > 0)
+        skips re-indexing unless force_reindex is set.
+
+        Returns:
+            {"total_vector_count": int} — current vectors in the index.
+        """
+        raw = self.index.describe_index_stats()
+        if isinstance(raw, dict):
+            count = raw.get("total_vector_count", 0)
+        else:
+            count = getattr(raw, "total_vector_count", 0) or 0
+        return {"total_vector_count": count}
+
+    def delete_all(self) -> None:
+        """
+        Delete every vector in the index.
+
+        Backs force_reindex: wipe the index before re-running the pipeline so
+        stale chunks (e.g. from a changed corpus) cannot linger.
+        """
+        self.index.delete(delete_all=True)
+
     def query(
         self,
         vector: list[float],
