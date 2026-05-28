@@ -30,14 +30,14 @@ repos:
     hooks:
       - id: pytest
         name: pytest (rag-service)
-        entry: bash -c 'cd rag-service && .venv/bin/pytest -x --tb=short'
+        entry: bash -c 'cd rag-service && { [ -x .venv/bin/pytest ] || { echo "rag-service/.venv missing — run setup (see CONTRIBUTING.md)"; exit 1; }; } && .venv/bin/pytest -x --tb=short'
         language: system
         types: [python]
         pass_filenames: false
 
       - id: matrix-strip
         name: matrix-strip leakage guard
-        entry: bash -c 'cd rag-service && .venv/bin/pytest tests/test_isq_prompts_no_matrix_leakage.py -q'
+        entry: bash -c 'cd rag-service && { [ -x .venv/bin/pytest ] || { echo "rag-service/.venv missing — run setup (see CONTRIBUTING.md)"; exit 1; }; } && .venv/bin/pytest tests/test_isq_prompts_no_matrix_leakage.py -q'
         language: system
         files: ^rag-service/app/.*\.py$
         pass_filenames: false

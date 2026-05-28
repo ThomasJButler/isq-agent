@@ -29,7 +29,7 @@
 - `pytest tests/test_index_endpoint.py -v` — 5/5 passing (TDD red→green confirmed)
 - `pytest tests/test_pinecone_client.py -v` — 8/8 passing (added describe_stats + delete_all)
 - `pytest -v` (full suite) — 31/31 passing, no regressions
-- `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.14)
+- `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.11)
 - `pytest tests/test_main_smoke.py -v` — 4/4 passing
 - `uvicorn app.main:app` — server starts, structured JSON logging works, no secrets logged
 - `curl http://localhost:8000/` — returns service metadata
