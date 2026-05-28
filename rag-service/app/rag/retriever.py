@@ -80,6 +80,11 @@ class Retriever:
             weighted score descending. Empty list if nothing clears the floor.
         """
         rewritten = self.query_rewriter.rewrite(query)
+        # The rewriter returns "" for empty/whitespace input (its documented
+        # contract). Embedding "" wastes a Voyage call and yields a meaningless
+        # vector — short-circuit to no results instead.
+        if not rewritten:
+            return []
         vector = self.voyage_client.embed_query(rewritten)
 
         # Pull top_k from Pinecone WITHOUT its min_score filter (min_score=0.0):

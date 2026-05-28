@@ -130,3 +130,14 @@ def test_retriever_applies_weighting_before_min_score_floor():
 
     # 0.51 × 0.95 = 0.4845 < 0.5 → honestly filtered out.
     assert results == []
+
+
+def test_retriever_skips_embedding_on_empty_rewritten_query():
+    """Rewriter returns '' (empty/whitespace input) → [] with no embed/query calls."""
+    retriever, mocks = _build_retriever([_match(0.9)], rewritten="")
+
+    results = retriever.retrieve("   ")
+
+    assert results == []
+    mocks["voyage"].embed_query.assert_not_called()
+    mocks["pinecone"].query.assert_not_called()
