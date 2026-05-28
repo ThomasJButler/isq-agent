@@ -72,7 +72,9 @@ def _process_pdf(file_path: Path) -> dict[str, Any]:
         all_text = []
 
         for page_num, page in enumerate(reader.pages, start=1):
-            page_text = page.extract_text()
+            # pypdf returns None for image-only/scanned/blank pages — coerce to ""
+            # so "\n".join(all_text) below never hits a NoneType.
+            page_text = page.extract_text() or ""
             pages.append({
                 "page_number": page_num,
                 "text": page_text,

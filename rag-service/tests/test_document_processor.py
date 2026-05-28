@@ -201,3 +201,28 @@ def test_process_preserves_page_numbers(sample_pdf_path):
         assert "text" in page_data
         assert isinstance(page_data["page_number"], int)
         assert page_data["page_number"] >= 1
+
+
+def test_process_pdf_handles_pages_with_no_extractable_text(tmp_path):
+    """pypdf returns None for image-only/scanned/blank pages → no crash, empty text."""
+    from unittest.mock import MagicMock, patch
+
+    from app.utils.document_processor import process_document
+
+    pdf_path = tmp_path / "image_only.pdf"
+    pdf_path.write_bytes(b"%PDF-1.4 placeholder")
+
+    # Page 1 is image-only (extract_text() -> None), page 2 has real text.
+    page_none = MagicMock()
+    page_none.extract_text.return_value = None
+    page_text = MagicMock()
+    page_text.extract_text.return_value = "Real policy text"
+    fake_reader = MagicMock()
+    fake_reader.pages = [page_none, page_text]
+
+    with patch("app.utils.document_processor.PdfReader", return_value=fake_reader):
+        result = process_document(pdf_path)
+
+    assert result["page_count"] == 2
+    assert result["pages"][0]["text"] == ""  # None coerced to empty string
+    assert "Real policy text" in result["text"]
