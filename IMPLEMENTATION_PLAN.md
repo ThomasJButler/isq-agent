@@ -43,7 +43,7 @@
 
 ## Active phase
 
-Branch C — Query Rewriter + Retriever (TDD-first). Query rewriter ✅ complete + validated (5/5). Next code slice is the **retriever** (`test_retriever.py` + `app/rag/retriever.py`), which wires query_rewriter → Voyage embed → Pinecone query → source weighting → min_score/top_k. (Branch B code done; remaining B steps are live smoke test + manual git ops, out of scope for the auto-loop.)
+Branch C — Query Rewriter + Retriever (TDD-first). **All Branch C code is complete + validated.** Query rewriter ✅ (5/5). Retriever ✅ (6/6) — wires query_rewriter → Voyage embed → Pinecone query → source weighting → min_score/top_k. Full suite **42/42 passing**. All remaining Plan 4 steps are out-of-scope-for-auto-loop: live smoke tests (need real API keys) and manual git ops (push/PR/squash-merge/tag). The RAG core (chunking, document processing, indexing, query rewriting, retrieval) is code-complete.
 
 ## Ordered checklist
 
@@ -150,20 +150,24 @@ Branch C — Query Rewriter + Retriever (TDD-first). Query rewriter ✅ complete
   - Return rewritten query string (`response.content[0].text.strip()`)
 - [x] Run `pytest tests/test_query_rewriter.py -v` — **5/5 passing**; full suite **36/36 passing**
 - [x] Commit files (test + implementation as separate commits)
-- [ ] Write `rag-service/tests/test_retriever.py` (5 tests)
+- [x] Write `rag-service/tests/test_retriever.py` (6 tests — 5 from plan + 1 for the weighting-before-floor invariant)
   - test_retriever_uses_rewritten_query
   - test_retriever_returns_top_k_chunks
   - test_retriever_prefers_policies_over_isqs
   - test_retriever_includes_source_metadata
   - test_retriever_handles_no_matches
-- [ ] Implement `rag-service/app/rag/retriever.py`
-  - Calls query_rewriter → embed via Voyage → query Pinecone → source weighting → filter by min_score
-  - Source weighting: policies × 1.0, historical_isqs × 0.95
-  - min_score = 0.5
-  - top_k = 5
-- [ ] Run smoke test in Python shell
-- [ ] Commit files
-- [ ] Push, PR, squash-merge, cleanup
+  - test_retriever_applies_weighting_before_min_score_floor (added — locks the 0.5-floor honesty decision)
+- [x] Run `pytest tests/test_retriever.py -v` — confirmed TDD red phase (ModuleNotFoundError: `app.rag.retriever`)
+- [x] Implement `rag-service/app/rag/retriever.py`
+  - `Retriever` class, DI constructor (query_rewriter / voyage_client / pinecone_client; defaults build the real clients)
+  - `retrieve()`: query_rewriter.rewrite → Voyage embed_query → Pinecone query → source weighting → filter by min_score → sort desc → cap top_k
+  - Source weighting: policies × 1.0, historical_isqs × 0.95 (SOURCE_WEIGHTS map)
+  - min_score = 0.5, top_k = 5
+  - **Decision resolved:** calls `PineconeClient.query(..., min_score=0.0)` so the retriever owns the 0.5 floor and applies it AFTER weighting (×0.95 can push a borderline isq under 0.5 → honestly dropped). `_apply_weight` returns a shallow copy (no input mutation).
+- [x] Run `pytest tests/test_retriever.py -v` — **6/6 passing**; full suite **42/42 passing**, no regressions
+- [ ] Run smoke test in Python shell — **deferred**: needs live Anthropic + Voyage + Pinecone keys (out of scope for auto-loop)
+- [x] Commit files (test + implementation as separate commits)
+- [ ] Push, PR, squash-merge, cleanup — manual git ops
 
 ### Post-merge (v0.1.0 milestone)
 
@@ -210,22 +214,17 @@ Branch C — Query Rewriter + Retriever (TDD-first). Query rewriter ✅ complete
 
 ## Next recommended build slice
 
-**Query rewriter is complete** (5/5, full suite 36/36). The next code slice is the **retriever** (TDD-first), the final code module in Branch C.
+**Plan 4 RAG core is code-complete.** Chunking ✅, document processor ✅, Pinecone client ✅, /index endpoint ✅, query rewriter ✅, retriever ✅. Full suite **42/42 passing**. Every remaining Plan 4 checklist item needs either live API keys or manual git — both out of scope for the auto-loop:
 
-Write `rag-service/tests/test_retriever.py` with 5 test cases (mock QueryRewriter, VoyageClient, PineconeClient — no live calls):
-1. test_retriever_uses_rewritten_query — calls query_rewriter.rewrite() before embedding
-2. test_retriever_returns_top_k_chunks — returns at most top_k (5) chunks
-3. test_retriever_prefers_policies_over_isqs — equal-score policy chunk ranks above historical_isq (×0.95 weighting)
-4. test_retriever_includes_source_metadata — each result carries source/page/source_type
-5. test_retriever_handles_no_matches — empty Pinecone result → empty list, no crash
+1. **Live smoke tests** (need real Anthropic + Voyage + Pinecone keys in repo-root `.env`):
+   - `curl -X POST http://localhost:8000/index -d '{"force_reindex":true}'` → expect ~70 vectors in Pinecone dashboard
+   - Python-shell smoke of `Retriever().retrieve("Do you use MFA?")` against the live index
+2. **Manual git ops** for Branches A/B/C: push, open PRs, squash-merge to main, branch cleanup. (Branches B and C code was committed onto `feature/chunking-and-processor` because Branch A never merged — re-establish branch separation OR merge the combined branch as one PR; decide before pushing.)
+3. **v0.1.0 milestone tag** after merge (`git tag -a v0.1.0`).
 
-After writing, run `source .venv/bin/activate && pytest tests/test_retriever.py -v` and confirm the TDD red phase (no `app/rag/retriever.py` yet). Then implement per plan-04 Section 7:
-- `Retriever` class wiring `QueryRewriter.rewrite()` → `VoyageClient.embed_query()` → `PineconeClient.query()` → source weighting → sort
-- Source weighting: multiply `historical_isq` scores by 0.95 AFTER retrieval (policies ×1.0), then re-sort descending
-- min_score = 0.5, top_k = 5 (constants; note PineconeClient.query already applies min_score, so decide whether the retriever re-applies or delegates)
-- Return list of result dicts with score + metadata (source, page, source_type, text)
+The next *code* work is **Plan 5** (Branching Strategy + Git Workflow: pre-commit hooks, CI, test backfill for Voyage/main) or **Plan 6** (Question Extraction), depending on whether the human runs the live indexing + git merge first.
 
-Decision to make in that slice: apply weighting before or after min_score filtering. Plan-04 Section 7 multiplies score post-retrieval; since ×0.95 can push a borderline isq chunk below 0.5, apply weighting first, then filter, to stay honest about the 0.5 floor.
+**Retriever decision recorded (resolved this slice):** weighting is applied BEFORE the min_score floor. The retriever calls `PineconeClient.query(..., min_score=0.0)` (telling the client NOT to filter), applies ×0.95 to historical_isqs, then drops anything < 0.5, sorts descending, and caps at top_k=5. This keeps the 0.5 floor honest (a 0.51 isq → 0.4845 → correctly dropped, covered by `test_retriever_applies_weighting_before_min_score_floor`).
 
 **Note for live indexing later:** the `/index` endpoint constructs `PineconeClient()` and `VoyageClient()` at request time — both need valid API keys in the repo-root `.env`. The Pinecone index `isq-agent-knowledge` must exist (it does) before the first real `curl POST /index`.
 
