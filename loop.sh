@@ -132,14 +132,14 @@ while true; do
   echo
   echo "==> Iteration $((ITERATION + 1))"
 
-  CLAUDE_ARGS=(-p "$PROMPT_TEXT" --output-format stream-json)
+  CLAUDE_ARGS=(-p "$PROMPT_TEXT" --output-format stream-json --verbose)
 
   if [[ "$OVERLAY_PROMPT_FILE" != "" ]]; then
     if [[ ! -f "$OVERLAY_PROMPT_FILE" ]]; then
       echo "Missing overlay prompt file: $OVERLAY_PROMPT_FILE"
       exit 1
     fi
-    CLAUDE_ARGS+=(--append-system-prompt-file "$OVERLAY_PROMPT_FILE")
+    CLAUDE_ARGS+=(--append-system-prompt "$(cat "$OVERLAY_PROMPT_FILE")")
   fi
 
   if [[ "$MAX_TURNS" != "" ]]; then
