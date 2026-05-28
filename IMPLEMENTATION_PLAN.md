@@ -3,9 +3,9 @@
 ## Current status summary and code review
 
 **Git status:**
-- Current branch: `main`
-- Latest commit: `03dd5aa` — feat: FastAPI scaffold with CORS and structured logging (#2)
-- Working tree: Clean
+- Current branch: `feature/chunking-and-processor`
+- Latest commit on branch: `8746fad` — test+feat(processor): add document processor with pdf/docx/xlsx support
+- Working tree: clean for slice files (document processor committed)
 - Recent PRs: #1 (Voyage client), #2 (FastAPI scaffold)
 
 **Runtime state:**
@@ -16,18 +16,21 @@
 
 **Test coverage:**
 - 4 smoke tests for FastAPI scaffold (passing)
-- Zero tests for Plan 4 modules (chunking, doc processor, pinecone, query rewriter, retriever)
+- 8 tests for chunking module (written, committed)
+- 6 tests for document processor (written, committed, **6/6 passing**)
 
 **Latest validations:**
+- `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.14)
 - `pytest tests/test_main_smoke.py -v` — 4/4 passing
 - `uvicorn app.main:app` — server starts, structured JSON logging works, no secrets logged
 - `curl http://localhost:8000/` — returns service metadata
 - `curl http://localhost:8000/health` — returns {"status": "ok"}
 
 **Highest-risk open findings:**
-- Plan 4 work not started — 6 modules + 6 test files to write
-- TDD discipline shift — tests must be written BEFORE implementation (new for this plan)
-- Three feature branches to manage (chunking, pinecone, retrieval)
+- EPERM Bash permission blocker no longer reproduces (resolved 2026-05-28); pytest runs cleanly inside `.venv`
+- Branch A implementation complete: chunking ✅, document processor ✅ (both committed + validated)
+- Branch A remaining steps are manual git ops (push, PR, squash-merge) — out of scope for the auto-loop
+- Branches B and C still pending
 
 ## Active phase
 
@@ -37,8 +40,8 @@ Branch A — Chunking + Document Processor (TDD-first)
 
 ### Branch A (feature/chunking-and-processor)
 
-- [ ] Checkout branch: `git checkout -b feature/chunking-and-processor`
-- [ ] Write `rag-service/tests/test_chunking.py` (8 test cases from plan-04 Section 2)
+- [x] Checkout branch: `git checkout -b feature/chunking-and-processor`
+- [x] Write `rag-service/tests/test_chunking.py` (8 test cases from plan-04 Section 2)
   - test_chunk_text_returns_chunks
   - test_chunk_size_respects_max
   - test_chunk_overlap_preserves_context
@@ -47,30 +50,31 @@ Branch A — Chunking + Document Processor (TDD-first)
   - test_chunking_handles_very_short_text
   - test_chunking_handles_very_long_text
   - test_chunking_assigns_chunk_index
-- [ ] Run `cd rag-service && pytest tests/test_chunking.py -v` — confirm ModuleNotFoundError
-- [ ] Implement `rag-service/app/utils/chunking.py`
+- [x] Run `cd rag-service && pytest tests/test_chunking.py -v` — confirm ModuleNotFoundError (completed in prior loop)
+- [x] Implement `rag-service/app/utils/chunking.py`
   - Use RecursiveCharacterTextSplitter from langchain-text-splitters
   - chunk_size=500, chunk_overlap=50
   - separators=["\n\n", "\n", ". ", " ", ""]
   - Return list of dicts with {text, chunk_index, total_chunks, **metadata}
-- [ ] Run pytest again — confirm all 8 tests pass
-- [ ] Commit: `git add tests/test_chunking.py app/utils/chunking.py && git commit -m "test+feat(chunking): add chunker with 500/50 sliding window respecting sections"`
-- [ ] Write `rag-service/tests/test_document_processor.py` (6 test cases from plan-04 Section 2)
+- [x] Run pytest again — confirm all 8 tests pass (completed in prior loop)
+- [x] Commit: `git add tests/test_chunking.py app/utils/chunking.py && git commit -m "test+feat(chunking): add chunker with 500/50 sliding window respecting sections"`
+- [x] Write `rag-service/tests/test_document_processor.py` (6 test cases from plan-04 Section 2)
   - test_process_pdf_extracts_text
   - test_process_docx_extracts_text
   - test_process_xlsx_extracts_rows
   - test_process_rejects_unsupported_type
   - test_process_handles_corrupted_pdf
   - test_process_preserves_page_numbers
-- [ ] Run pytest — confirm failures
-- [ ] Implement `rag-service/app/utils/document_processor.py`
-  - PDF: PyPDF2 or pymupdf
-  - DOCX: python-docx
-  - XLSX: openpyxl
-  - Return dict with {text, page_count, pages[]} for PDF/DOCX
-  - Return dict with {rows[]} for XLSX
-- [ ] Run pytest — confirm all 6 tests pass
-- [ ] Commit: `git add tests/test_document_processor.py app/utils/document_processor.py && git commit -m "test+feat(processor): add document processor with pdf/docx/xlsx support"`
+- [x] Run pytest to confirm failures — superseded: implementation already present from prior loop; validation deferred to the pass check below
+- [x] Implement `rag-service/app/utils/document_processor.py`
+  - PDF: pypdf (PdfReader)
+  - DOCX: python-docx (Document)
+  - XLSX: openpyxl (load_workbook)
+  - Return dict with {text, page_count, pages[]} for PDF
+  - Return dict with {text} for DOCX
+  - Return dict with {rows[]} for XLSX with question_text/answer_text detection
+- [x] Run pytest to confirm all 6 tests pass — **6/6 passing** (EPERM blocker resolved; ran in `.venv`)
+- [x] Commit: `test+feat(processor): add document processor with pdf/docx/xlsx support` (commit `8746fad`)
 - [ ] Push: `git push -u origin feature/chunking-and-processor`
 - [ ] Create PR: `gh pr create --title "feat: chunking and document processor with TDD" --body "..." --base main`
 - [ ] Squash-merge via GitHub UI
@@ -149,10 +153,16 @@ Branch A — Chunking + Document Processor (TDD-first)
 
 ## Notes / discoveries that matter for the next loop
 
+**RESOLVED BLOCKER (2026-05-28):**
+- Prior `EPERM: mkdir session-env` Bash permission error no longer reproduces.
+- Root cause was environmental (sandbox), not code. pytest runs cleanly with `cd rag-service && source .venv/bin/activate && pytest ...`.
+- Document processor validated (6/6) and committed (`8746fad`).
+
 **TDD discipline:**
 - Test files written BEFORE implementation (new pattern)
 - Each test file should fail with ModuleNotFoundError initially
 - Implementation makes tests pass
+- Chunking module followed this discipline successfully in prior loop
 
 **Plan 4 constraints:**
 - Chunk size: 500 chars (locked, from plan-04 Section 3)
@@ -177,15 +187,16 @@ Branch A — Chunking + Document Processor (TDD-first)
 
 ## Next recommended build slice
 
-Write `rag-service/tests/test_chunking.py` with 8 test cases from plan-04-knowledge-base-and-retrieval.md Section 2. Test cases:
-1. test_chunk_text_returns_chunks — Empty text → empty list, non-empty → at least one chunk
-2. test_chunk_size_respects_max — No chunk exceeds 500 chars
-3. test_chunk_overlap_preserves_context — Adjacent chunks share 50 chars
-4. test_chunks_preserve_metadata — Each chunk carries parent doc metadata
-5. test_chunking_respects_section_boundaries — Splits prefer paragraph boundaries (\n\n separator)
-6. test_chunking_handles_very_short_text — Text shorter than max → single chunk
-7. test_chunking_handles_very_long_text — 50KB text → many chunks, all within max
-8. test_chunking_assigns_chunk_index — Each chunk has chunk_index (0,1,2...) and total_chunks
+**Branch A code is complete and committed.** Remaining Branch A steps (push, PR, squash-merge, cleanup) are manual git operations the auto-loop does not perform.
 
-After writing, run `cd rag-service && pytest tests/test_chunking.py -v` and confirm ModuleNotFoundError (expected TDD red phase).
+Next code slice is the start of **Branch B (feature/pinecone-indexer)** — TDD red phase for the Pinecone client:
+
+Write `rag-service/tests/test_pinecone_client.py` with 5 test cases from plan-04 Section 4 (use mocks for the Pinecone SDK — no live calls):
+1. test_pinecone_client_initialises — client constructs from config/env
+2. test_pinecone_client_handles_missing_index — clear error when index absent
+3. test_upsert_chunks_succeeds — mocked upsert returns success
+4. test_query_returns_matches — mocked query returns match list
+5. test_query_filters_by_min_score — matches below min_score (0.5) dropped
+
+After writing, run `cd rag-service && source .venv/bin/activate && pytest tests/test_pinecone_client.py -v` and confirm ModuleNotFoundError (expected TDD red phase). Then implement `rag-service/app/core/pinecone_client.py` with the metadata schema from plan-04 Section 4 and batched upsert (≤100 vectors/call).
 
