@@ -230,6 +230,15 @@ A: Yes. Multi-factor authentication is mandatory for all cloud platforms, VPN ac
 
 The `[id|type|score]` header lets the LLM cite by id and respect the type-based weighting rule.
 
+### Prompt caching (enhancement)
+
+The system prompt + few-shot examples (Section 3) are **constant across every question in a questionnaire run** — Sunflowers alone is 20 questions. Mark that static prefix with Anthropic `cache_control` (ephemeral) so it is cached after the first call and re-read cheaply for the remaining questions. Only the user turn (question + retrieved chunks) varies, so it stays uncached.
+
+- Cache the large system block (instructions + few-shot); leave the per-question user prompt uncached.
+- Expected win: lower cost + latency on questions 2..N of each ISQ (the few-shot block is the bulk of the prompt tokens).
+- Implementation reference: the `claude-api` skill (caching patterns + cache-hit verification).
+- This is an optimisation, not a behaviour change — add it once the generator passes its tests; assert cache usage via the response `usage` fields.
+
 ---
 
 ## 4. Source weighting in the prompt (in addition to Plan 4 retrieval weighting)
