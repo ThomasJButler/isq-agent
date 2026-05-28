@@ -17,7 +17,6 @@ borderline historical_isq chunk that ×0.95 pushes under 0.5 is honestly dropped
 
 from unittest.mock import MagicMock
 
-import pytest
 
 from app.rag.retriever import Retriever
 

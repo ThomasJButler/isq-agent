@@ -38,7 +38,9 @@ def test_cors_allows_local_n8n_origin(client):
             "Access-Control-Request-Headers": "content-type",
         },
     )
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:5678"
+    assert (
+        response.headers.get("access-control-allow-origin") == "http://localhost:5678"
+    )
 
 
 def test_lifespan_does_not_log_secrets(caplog):

@@ -73,7 +73,7 @@ class PineconeClient:
         """
         total = 0
         for start in range(0, len(chunks), self.UPSERT_BATCH_SIZE):
-            batch = chunks[start:start + self.UPSERT_BATCH_SIZE]
+            batch = chunks[start : start + self.UPSERT_BATCH_SIZE]
             self.index.upsert(vectors=batch)
             total += len(batch)
 
@@ -129,10 +129,7 @@ class PineconeClient:
             include_metadata=True,
         )
 
-        matches = [
-            self._normalise_match(m)
-            for m in self._extract_matches(response)
-        ]
+        matches = [self._normalise_match(m) for m in self._extract_matches(response)]
         return [m for m in matches if m["score"] >= min_score]
 
     @staticmethod
