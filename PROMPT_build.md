@@ -52,4 +52,3 @@ Do not amend existing commits.
 
 ## Stop condition
 Stop after one completed slice with validation and plan updates.
-

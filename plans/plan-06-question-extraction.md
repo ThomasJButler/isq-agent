@@ -144,8 +144,8 @@ Company Name: None
 Date: 18/05/2026
 
 Question: Response
-Question: Do you use MFA for staff accounts? | Response: 
-Question: Are company laptops encrypted? | Response: 
+Question: Do you use MFA for staff accounts? | Response:
+Question: Are company laptops encrypted? | Response:
 ...
 ```
 

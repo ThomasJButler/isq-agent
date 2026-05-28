@@ -312,7 +312,7 @@ Tom's stated needs for this project:
 
 ### Manual coding sections (muscle memory for CGI interview + ISQ walkthrough)
 
-Tom changed his approach to mostly *reviewing* code rather than *typing* it. He has a CGI interview this week where he'll be observed typing code. Plus he needs muscle memory in the ISQ codebase for the RiverAI walkthrough demo. 
+Tom changed his approach to mostly *reviewing* code rather than *typing* it. He has a CGI interview this week where he'll be observed typing code. Plus he needs muscle memory in the ISQ codebase for the RiverAI walkthrough demo.
 
 **Commitment:** every plan from Plan 2 onwards will include a clearly-marked section called **🖐️ Manual Coding Exercise** where I write out a code snippet (10-30 lines, meaningful, related to the feature being planned) that Tom literally types from scratch into the repo. Goals: muscle memory, code-fluency confidence, working knowledge of every line.
 
@@ -324,7 +324,7 @@ These exercises will:
 
 ### Concept Primer explanations when needed
 
-Tom wants concepts broken down simply so he can re-explain them in the walkthrough. 
+Tom wants concepts broken down simply so he can re-explain them in the walkthrough.
 
 **Commitment:** when introducing a dense concept (vector embeddings, reranking, Pinecone namespaces, n8n credentials, etc.) I'll add a clearly-marked **📘 Concept Primer** subsection that uses simple analogies.
 
@@ -338,7 +338,7 @@ It's a hot bank holiday Monday. No deadline. Tom is happy to spend a few days on
 
 ### Business value beyond the job
 
-If RiverAI doesn't extend an offer, the ISQ Agent should still be valuable IP. 
+If RiverAI doesn't extend an offer, the ISQ Agent should still be valuable IP.
 
 **Commitment:** every plan will flag where a build choice has commercial relevance ("this pattern is reusable for any vendor-questionnaire workflow", "this could become a paid service for SaaS companies that get a lot of supplier questionnaires"). Keeps the longer view alive without distorting the assessment scope.
 

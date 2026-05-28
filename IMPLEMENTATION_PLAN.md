@@ -227,4 +227,3 @@ The next *code* work is **Plan 5** (Branching Strategy + Git Workflow: pre-commi
 **Retriever decision recorded (resolved this slice):** weighting is applied BEFORE the min_score floor. The retriever calls `PineconeClient.query(..., min_score=0.0)` (telling the client NOT to filter), applies ×0.95 to historical_isqs, then drops anything < 0.5, sorts descending, and caps at top_k=5. This keeps the 0.5 floor honest (a 0.51 isq → 0.4845 → correctly dropped, covered by `test_retriever_applies_weighting_before_min_score_floor`).
 
 **Note for live indexing later:** the `/index` endpoint constructs `PineconeClient()` and `VoyageClient()` at request time — both need valid API keys in the repo-root `.env`. The Pinecone index `isq-agent-knowledge` must exist (it does) before the first real `curl POST /index`.
-
