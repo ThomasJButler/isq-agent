@@ -20,9 +20,12 @@
 - 6 tests for document processor (written, committed, **6/6 passing**)
 - 8 tests for Pinecone client (6 original + 2 for describe_stats/delete_all, **8/8 passing**)
 - 5 tests for /index endpoint (written, **5/5 passing**)
-- **Full suite: 31/31 passing**
+- 5 tests for query rewriter (written, committed, **5/5 passing**)
+- **Full suite: 36/36 passing**
 
 **Latest validations:**
+- `pytest tests/test_query_rewriter.py -v` — 5/5 passing (TDD red→green confirmed; red phase = AttributeError, no `app.rag.query_rewriter`)
+- `pytest -v` (full suite) — 36/36 passing, no regressions after query rewriter
 - `pytest tests/test_index_endpoint.py -v` — 5/5 passing (TDD red→green confirmed)
 - `pytest tests/test_pinecone_client.py -v` — 8/8 passing (added describe_stats + delete_all)
 - `pytest -v` (full suite) — 31/31 passing, no regressions
@@ -40,7 +43,7 @@
 
 ## Active phase
 
-Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ and `/index` endpoint ✅ complete + validated. Branch B code is done; remaining Branch B steps are the live smoke test (needs API keys) + manual git ops. Next code slice is **Branch C** (query rewriter + retriever).
+Branch C — Query Rewriter + Retriever (TDD-first). Query rewriter ✅ complete + validated (5/5). Next code slice is the **retriever** (`test_retriever.py` + `app/rag/retriever.py`), which wires query_rewriter → Voyage embed → Pinecone query → source weighting → min_score/top_k. (Branch B code done; remaining B steps are live smoke test + manual git ops, out of scope for the auto-loop.)
 
 ## Ordered checklist
 
@@ -132,18 +135,21 @@ Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ and `/index` endp
 
 ### Branch C (feature/query-rewriter-and-retriever)
 
-- [ ] Checkout: `git checkout -b feature/query-rewriter-and-retriever`
-- [ ] Write `rag-service/tests/test_query_rewriter.py` (5 tests with mocked Anthropic)
+- [ ] Checkout: `git checkout -b feature/query-rewriter-and-retriever` — **deferred** (same rationale as Branch B: Branch A not yet merged; query rewriter committed on `feature/chunking-and-processor`)
+- [x] Write `rag-service/tests/test_query_rewriter.py` (5 tests with mocked Anthropic)
   - test_rewriter_expands_acronyms
   - test_rewriter_preserves_intent
   - test_rewriter_adds_policy_vocabulary
   - test_rewriter_handles_empty_query
   - test_rewriter_uses_isq_specific_prompt
-- [ ] Implement `rag-service/app/rag/query_rewriter.py`
-  - System prompt from plan-04 Section 6
-  - Use Anthropic client (claude-sonnet-4-5)
-  - Return rewritten query string
-- [ ] Commit files
+- [x] Run `pytest tests/test_query_rewriter.py -v` — confirmed TDD red phase (AttributeError: `app.rag` has no attribute `query_rewriter`)
+- [x] Implement `rag-service/app/rag/query_rewriter.py`
+  - System prompt verbatim from plan-04 Section 6 (module-level `SYSTEM_PROMPT`)
+  - Use Anthropic client (model from `settings.anthropic_model` = claude-sonnet-4-5)
+  - Empty/whitespace query short-circuits to "" with NO LLM call
+  - Return rewritten query string (`response.content[0].text.strip()`)
+- [x] Run `pytest tests/test_query_rewriter.py -v` — **5/5 passing**; full suite **36/36 passing**
+- [x] Commit files (test + implementation as separate commits)
 - [ ] Write `rag-service/tests/test_retriever.py` (5 tests)
   - test_retriever_uses_rewritten_query
   - test_retriever_returns_top_k_chunks
@@ -204,22 +210,22 @@ Branch B — Pinecone Indexer (TDD-first). Pinecone client ✅ and `/index` endp
 
 ## Next recommended build slice
 
-**Branch B code is complete** (`/index` endpoint 5/5, Pinecone client 8/8, full suite 31/31). Remaining Branch B items are the live smoke test (needs API keys) + manual git ops — both out of scope for the auto-loop. The next code slice is **Branch C — query rewriter** (TDD-first).
+**Query rewriter is complete** (5/5, full suite 36/36). The next code slice is the **retriever** (TDD-first), the final code module in Branch C.
 
-Write `rag-service/tests/test_query_rewriter.py` with 5 test cases (mocked Anthropic client — no live calls):
-1. test_rewriter_expands_acronyms — "MFA" → "multi-factor authentication" in output
-2. test_rewriter_preserves_intent — original topic preserved
-3. test_rewriter_adds_policy_vocabulary — output includes policy-doc terms
-4. test_rewriter_handles_empty_query — empty string → empty string, NO LLM call
-5. test_rewriter_uses_isq_specific_prompt — system prompt mentions "security questionnaire" or similar
+Write `rag-service/tests/test_retriever.py` with 5 test cases (mock QueryRewriter, VoyageClient, PineconeClient — no live calls):
+1. test_retriever_uses_rewritten_query — calls query_rewriter.rewrite() before embedding
+2. test_retriever_returns_top_k_chunks — returns at most top_k (5) chunks
+3. test_retriever_prefers_policies_over_isqs — equal-score policy chunk ranks above historical_isq (×0.95 weighting)
+4. test_retriever_includes_source_metadata — each result carries source/page/source_type
+5. test_retriever_handles_no_matches — empty Pinecone result → empty list, no crash
 
-After writing, run `source .venv/bin/activate && pytest tests/test_query_rewriter.py -v` and confirm the TDD red phase (no `app/rag/query_rewriter.py` yet). Then implement per plan-04 Section 6:
-- `QueryRewriter` class using the Anthropic client (model `claude-sonnet-4-5` from `settings.anthropic_model`)
-- System prompt verbatim from plan-04 Section 6 (acronym expansion, policy vocabulary, output-only-the-query rule)
-- Short-circuit empty/whitespace queries → return "" without any LLM call
-- Return the rewritten query string
+After writing, run `source .venv/bin/activate && pytest tests/test_retriever.py -v` and confirm the TDD red phase (no `app/rag/retriever.py` yet). Then implement per plan-04 Section 7:
+- `Retriever` class wiring `QueryRewriter.rewrite()` → `VoyageClient.embed_query()` → `PineconeClient.query()` → source weighting → sort
+- Source weighting: multiply `historical_isq` scores by 0.95 AFTER retrieval (policies ×1.0), then re-sort descending
+- min_score = 0.5, top_k = 5 (constants; note PineconeClient.query already applies min_score, so decide whether the retriever re-applies or delegates)
+- Return list of result dicts with score + metadata (source, page, source_type, text)
 
-Then the retriever slice (`test_retriever.py` + `app/rag/retriever.py`) wires query_rewriter → Voyage embed → Pinecone query → source weighting (policies ×1.0, historical_isqs ×0.95) → min_score 0.5, top_k 5.
+Decision to make in that slice: apply weighting before or after min_score filtering. Plan-04 Section 7 multiplies score post-retrieval; since ×0.95 can push a borderline isq chunk below 0.5, apply weighting first, then filter, to stay honest about the 0.5 floor.
 
 **Note for live indexing later:** the `/index` endpoint constructs `PineconeClient()` and `VoyageClient()` at request time — both need valid API keys in the repo-root `.env`. The Pinecone index `isq-agent-knowledge` must exist (it does) before the first real `curl POST /index`.
 
