@@ -11,7 +11,7 @@ obvious file to police. Keep this module free of any fictional-universe branding
 # return schema-valid JSON via tool_use — no free-text parsing, no malformed output.
 EXTRACT_QUESTIONS_TOOL = {
     "name": "extract_questions",
-    "description": "Extract numbered questions from a questionnaire",
+    "description": "Extract questions from a questionnaire",
     "input_schema": {
         "type": "object",
         "properties": {

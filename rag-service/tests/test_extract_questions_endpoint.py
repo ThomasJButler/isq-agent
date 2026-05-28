@@ -138,7 +138,7 @@ def test_extract_endpoint_propagates_request_id(mock_extractor, client):
 
 @patch("app.api.extract.QuestionExtractor")
 def test_extract_endpoint_handles_anthropic_failure(mock_extractor, client):
-    """An Anthropic API outage maps to 503 so n8n retries with backoff."""
+    """A transient Anthropic outage maps to 503 so n8n retries with backoff."""
     mock_extractor.return_value.extract.side_effect = anthropic.APIConnectionError(
         request=httpx.Request("POST", "https://api.anthropic.com/v1/messages")
     )
@@ -146,3 +146,16 @@ def test_extract_endpoint_handles_anthropic_failure(mock_extractor, client):
     response = client.post("/extract-questions", json=PDF_BODY)
 
     assert response.status_code == 503
+
+
+@patch("app.api.extract.QuestionExtractor")
+def test_extract_endpoint_maps_permanent_anthropic_error_to_502(mock_extractor, client):
+    """A permanent Anthropic error (bad key/request) maps to 502, not a retryable 503."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    mock_extractor.return_value.extract.side_effect = anthropic.AuthenticationError(
+        "invalid x-api-key", response=httpx.Response(401, request=request), body=None
+    )
+
+    response = client.post("/extract-questions", json=PDF_BODY)
+
+    assert response.status_code == 502

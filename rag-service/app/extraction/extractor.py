@@ -8,15 +8,16 @@ guarantees schema-valid JSON back, so there is no fragile text parsing.
 
 question_ids are derived deterministically from the filename + 1-based ordinal
 position, so re-running extraction on the same questionnaire yields identical ids
-(downstream answer generation keys off them). The model's index/page values are
-hints carried through to the output; the ordinal — not the model's number —
-drives the id, so skipped or duplicate source numbering still yields unique,
-sequential ids.
+(downstream answer generation keys off them). The model's page value is carried
+through, but the 1-based ordinal — not the model's reported number — drives both
+the output index and the id, so skipped or duplicate source numbering still yields
+unique, sequential output.
 """
 
 import logging
 import time
 from pathlib import Path
+from typing import Any
 
 from anthropic import Anthropic
 
@@ -30,7 +31,7 @@ from app.core.isq_prompts import (
 logger = logging.getLogger(__name__)
 
 
-def flatten_xlsx_to_text(rows: list[dict], filename: str) -> str:
+def flatten_xlsx_to_text(rows: list[dict[str, Any]], filename: str) -> str:
     """
     Render XLSX rows as plain text for the unified extractor.
 
@@ -68,7 +69,9 @@ class QuestionExtractor:
     # A large questionnaire (100+ questions) is a sizeable structured output;
     # leave generous headroom so the tool result is never truncated.
     MAX_TOKENS = 8192
-    # claude-sonnet-4-5 list pricing, USD per million tokens.
+    # claude-sonnet-4-5 list pricing, USD per million tokens. Valid only for that
+    # model — cost_usd would be wrong if a different model were injected, so update
+    # these alongside any model change (the model is fixed by CLAUDE.md today).
     COST_PER_MTOK_IN = 3.0
     COST_PER_MTOK_OUT = 15.0
 
@@ -87,6 +90,8 @@ class QuestionExtractor:
 
         Empty / whitespace-only input short-circuits to zero questions with the
         "no_questions_detected" warning and NO LLM call — nothing to extract.
+        (extraction_method is still "llm": it names the pipeline, not whether a
+        call was actually made.)
         """
         if not source_text or not source_text.strip():
             return self._result([], ["no_questions_detected"], 0, 0, 0.0)

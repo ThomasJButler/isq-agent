@@ -3,16 +3,23 @@ POST /extract-questions — turn an inbound questionnaire into a structured list
 questions (Plan 6).
 
 Thin orchestrator: validate the request, flatten XLSX rows to text when needed,
-delegate to the unified QuestionExtractor, and map an Anthropic outage to 503 so
-the n8n workflow can retry with backoff. The response shape and deterministic
-question_ids are the contract every downstream plan (answer generation, rendering)
-depends on.
+delegate to the unified QuestionExtractor, and map a transient Anthropic outage to
+503 so the n8n workflow retries with backoff. Permanent failures (bad key,
+malformed request) get a 502 instead, since retrying them would never succeed. The
+response shape and deterministic question_ids are the contract every downstream
+plan (answer generation, rendering) depends on.
 """
 
 import logging
 from typing import Any, Literal
 
-import anthropic
+from anthropic import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
@@ -34,7 +41,7 @@ class ExtractRequest(BaseModel):
 
     source_format: Literal["pdf", "xlsx_rows"]
     source_text: str | None = None
-    source_rows: list[dict] | None = None
+    source_rows: list[dict[str, Any]] | None = None
     filename: str
 
 
@@ -62,8 +69,28 @@ def extract_questions(
 
     try:
         return QuestionExtractor().extract(text, payload.filename)
-    except anthropic.APIError as exc:
-        logger.error("Anthropic unavailable during question extraction", exc_info=True)
+    except (
+        APIConnectionError,
+        APITimeoutError,
+        InternalServerError,
+        RateLimitError,
+    ) as exc:
+        # Transient: Anthropic is briefly unreachable or struggling. 503 tells n8n
+        # to retry with backoff.
+        logger.error(
+            "Anthropic temporarily unavailable during extraction", exc_info=True
+        )
         raise HTTPException(
-            status_code=503, detail="Question extraction unavailable. Retry shortly."
+            status_code=503,
+            detail="Question extraction temporarily unavailable. Retry shortly.",
+        ) from exc
+    except APIError as exc:
+        # Permanent: bad key, malformed request, etc. Retrying won't help, so 502
+        # surfaces it instead of inviting an n8n retry storm.
+        logger.error(
+            "Anthropic request failed (non-retryable) during extraction", exc_info=True
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Question extraction failed due to an upstream error.",
         ) from exc
