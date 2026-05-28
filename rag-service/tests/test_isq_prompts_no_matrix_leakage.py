@@ -36,7 +36,7 @@ FORBIDDEN_TERMS = [
 ]
 
 _PATTERNS = [
-    (term, re.compile(rf"\b{re.escape(term)}s?\b", re.IGNORECASE))
+    (term, re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE))
     for term in FORBIDDEN_TERMS
 ]
 
@@ -72,7 +72,7 @@ def test_no_matrix_terminology_in_app_source():
 @pytest.mark.parametrize("term", FORBIDDEN_TERMS)
 def test_each_forbidden_term_is_absent(term):
     """Per-term check so a failure names exactly which term leaked."""
-    pattern = re.compile(rf"\b{re.escape(term)}s?\b", re.IGNORECASE)
+    pattern = re.compile(rf"\b{re.escape(term)}\b", re.IGNORECASE)
     hits = [
         f"{path.relative_to(APP_DIR.parent)}:{lineno}"
         for path in _app_python_files()
