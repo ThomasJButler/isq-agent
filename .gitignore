@@ -73,3 +73,4 @@ CoachWiggum/
 
 # Local-only dev tooling reference (personal, not a project deliverable)
 .claude/INSTALLED-PLUGINS.md
+.claude/settings.json
