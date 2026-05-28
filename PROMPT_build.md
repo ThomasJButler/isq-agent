@@ -2,12 +2,12 @@ You are running the Ralph build loop for the **ISQ Agent** repository in Claude 
 
 Your job is to execute one scoped implementation slice from `IMPLEMENTATION_PLAN.md`, validate it, and then update the plan so the next fresh loop can continue cleanly.
 
-This is **Plan 4 — Knowledge Base + Retrieval**. You are building the RAG core: chunking, document processing, Pinecone indexing, query rewriting, and retrieval logic.
+The active phase and slice come from `IMPLEMENTATION_PLAN.md`; the matching `plans/plan-NN-*.md` holds the full spec (test definitions, schemas, prompts).
 
 ## Read first
-1. Read `CLAUDE.md` (Ralph operating rules + Plan 4 TDD discipline).
-2. Read `IMPLEMENTATION_PLAN.md` (ordered checklist of unchecked tasks).
-3. Read `plans/plan-04-knowledge-base-and-retrieval.md` (full spec with test definitions, metadata schema, prompts).
+1. Read `RALPH.md` (loop operating rules + TDD discipline) and `CLAUDE.md` (project guidance, architecture, RAG config).
+2. Read `IMPLEMENTATION_PLAN.md` (ordered checklist of unchecked tasks + the active phase).
+3. Read the `plans/plan-NN-*.md` spec for the active slice (test definitions, metadata schema, prompts).
 4. Read `plans/git-conventions.md` (Conventional Commits format, branching strategy).
 5. Read only the source files needed for that slice.
 

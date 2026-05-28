@@ -1,72 +1,86 @@
-# CLAUDE.md — ISQ Agent Ralph Loop Configuration
+# CLAUDE.md
 
-## Ralph operating rules
-- Read `IMPLEMENTATION_PLAN.md` before changing code.
-- In plan mode, update the plan only. Do not implement.
-- In build mode, execute exactly one highest-priority unchecked task or one tightly related sub-slice of that task.
-- Keep this file operational and compact. Status, discoveries, and sequencing belong in `IMPLEMENTATION_PLAN.md`.
-- Prefer small, reversible edits over broad refactors.
-- Confirm a feature is actually missing before building it.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Plan 4 TDD Discipline (locked for Plans 4-10)
-- **Write tests BEFORE implementation** — every module starts with its test file
-- Watch tests fail (ModuleNotFoundError or AssertionError) before implementing
-- Implement minimum code to make tests pass
-- Run pytest after implementation to confirm all green
-- Commit test file and implementation file separately (one concern per commit)
+> Autonomous Ralph loop rules live in `RALPH.md`. Local dev-tooling reference: `.claude/INSTALLED-PLUGINS.md`.
 
-## Working agreements
-- Keep changes scoped to the active plan item.
-- Do not introduce placeholder implementations.
-- Do not silently rewrite architecture when a local fix is sufficient.
-- Do not auto-push, auto-tag, or auto-release from the loop.
-- Update docs when setup, commands, or runtime behavior change.
-- Follow Conventional Commits format: `<type>(<scope>): <subject>`
-- Stage files explicitly (no `git add .`)
+## Project Overview
 
-## Validation commands
+ISQ Agent is an AI-powered workflow that answers supplier **Information Security Questionnaires (ISQs)**, grounding every answer in Northstar Labs policies + historical ISQ responses, with honest confidence flagging. It is a **two-service system**:
 
-### Test validation
+- **n8n** (`:5678`) — workflow orchestration: ingests an inbound ISQ, calls the RAG service per question, renders the filled response document.
+- **FastAPI RAG service** (`:8000`, in `rag-service/`) — the retrieval + answer engine. This is where almost all the code lives.
+
+Status and sequencing live in `IMPLEMENTATION_PLAN.md` and `plans/` (12 iterative plans) — consult those rather than assuming a phase.
+
+## Essential Commands
+
 ```bash
-cd rag-service && source .venv/bin/activate && pytest tests/test_<module>.py -v
-```
+# Setup (Python 3.14)
+cd rag-service && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
-### Smoke tests
-```bash
-# FastAPI server
-cd rag-service && source .venv/bin/activate
-uvicorn app.main:app --reload &
-sleep 3
-curl http://localhost:8000/health
-pkill -f uvicorn
+# Dev server (:8000, auto-reload)
+cd rag-service && source .venv/bin/activate && uvicorn app.main:app --reload
 
-# Indexing endpoint (after Branch B complete)
+# Tests — MUST run from rag-service/ with the venv active
+pytest -v                            # full suite
+pytest tests/test_<module>.py -v     # single module
+
+# Lint / format
+ruff check . && ruff format .
+
+# Full local stack (n8n + rag-service)
+docker compose up
+
+# Build the knowledge base (server must be running)
 curl -X POST http://localhost:8000/index -d '{"force_reindex":true}' -H "Content-Type: application/json"
 ```
 
-### Full suite
-```bash
-cd rag-service && pytest -v
-```
+## Code Architecture
 
-## Plan 4 constraints (from plan-04-knowledge-base-and-retrieval.md)
-- **Chunk size:** 500 chars (locked)
-- **Chunk overlap:** 50 chars (locked)
-- **Pinecone metadata schema:** source, source_type, section_title, page, chunk_index, chunk_total, text, isq_question_text, indexed_at
-- **Source weighting:** policies × 1.0, historical_isqs × 0.95
-- **min_score threshold:** 0.5
-- **top_k:** 5
+### Module organization (`rag-service/app/`)
+- `core/` — `config.py` (pydantic-settings, loads repo-root `.env`), `pinecone_client.py` (Pinecone v5 wrapper)
+- `voyage/` — `client.py` (Voyage embeddings + cost tracking)
+- `utils/` — `chunking.py` (section-aware splitter), `document_processor.py` (PDF/DOCX/XLSX extraction)
+- `rag/` — `query_rewriter.py` (ISQ → retrieval query), `retriever.py` (search + ranking)
+- `api/` — `health.py`, `index.py`, `answer.py` (FastAPI routers)
+- `confidence/`, `extraction/`, `render/` — reserved for later plans (currently empty)
 
-## Documentation rules
-- Update `IMPLEMENTATION_PLAN.md` whenever you discover a blocker, hidden dependency, or follow-up task.
-- Mark completed tasks with `[x]` immediately after validation passes.
-- Update "Next recommended slice" section after each commit.
-- Update README.md when setup or architecture details change.
-- Update this file only when the repo-wide loop rules change.
+### Indexing pipeline (`POST /index`)
+corpus discovery → `document_processor` (PDF/DOCX) → `chunking` (500/50) → Voyage embed (single batched call) → Pinecone upsert with **deterministic vector IDs**
 
-## Safety rules
-- Never commit secrets, tokens, or populated `.env` files.
-- Avoid destructive file moves until the relevant plan step is active.
-- No `--no-verify` on git commits (pre-commit hooks enforced when added in Plan 5).
-- No force-push to main branch.
+### Retrieval pipeline
+question → `query_rewriter` (acronym + policy-vocabulary expansion) → Voyage embed → Pinecone query → **source weighting** → `min_score` floor → top-k
 
+### Critical invariants
+- **Pinecone v5 API only** — v6 has breaking changes (pinned in `requirements.txt`).
+- **Vector IDs are deterministic** (derived from filename) so re-indexing is idempotent (upsert-replaces, no orphans).
+- **Source weighting is applied in code, after retrieval** (not baked into embeddings), and **before** the `min_score` floor — so a down-weighted match that falls below threshold is honestly dropped.
+
+## RAG Configuration
+
+- **Chunk size** 500 chars / **overlap** 50 chars
+- **Pinecone index**: 1024 dims, cosine, serverless. Metadata schema: `source, source_type, section_title, page, chunk_index, chunk_total, text, isq_question_text, indexed_at`
+- **Source weighting**: policies ×1.0, historical_isqs ×0.95
+- **min_score** 0.5 · **top_k** 5
+- **Models**: `voyage-3-large` (embeddings), `claude-sonnet-4-5` (generation + query rewriting)
+
+## TDD Discipline
+
+- Write the test file **before** the implementation.
+- Watch tests fail (`ModuleNotFoundError` / `AssertionError`) before implementing.
+- Implement the minimum to make tests pass; run pytest to confirm green.
+- Commit the test file and implementation file separately (one concern per commit).
+
+## Working Agreements
+
+- Conventional Commits: `<type>(<scope>): <subject>` (types: feat/fix/test/docs/refactor/chore; scopes: rag, api, retriever, chunking, voyage, pinecone, ci, etc.).
+- Stage files explicitly — never `git add .`.
+- Small, reversible edits over broad refactors. No placeholder implementations.
+- Update docs when setup, commands, or runtime behaviour change.
+
+## Safety Rules
+
+- Never commit secrets, tokens, or a populated `.env`.
+- No `--no-verify` on commits (pre-commit hooks enforced from Plan 5).
+- No force-push to `main`; revert rather than reset.
