@@ -38,4 +38,3 @@ Keep or rewrite the file into this shape:
 
 ## Stop condition
 When the plan is updated and internally consistent, stop.
-

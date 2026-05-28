@@ -48,4 +48,3 @@ The goal is not just to complete the slice, but to make the reasoning legible to
 - Do expose visible decision summaries, assumptions, evidence, and tradeoffs.
 - Bias toward short explanatory updates in build mode; plan mode can be lighter but should still explain major conclusions.
 - Prefer labeled `Insight`, `Checkpoint`, and `Summary` blocks over unlabeled reflective paragraphs when the content fits those shapes.
-

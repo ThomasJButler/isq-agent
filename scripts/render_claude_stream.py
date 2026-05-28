@@ -287,7 +287,12 @@ def render_event(event: dict[str, Any]) -> None:
 
     if event_type == "error":
         message_text = event.get("message") or event.get("error") or "Unknown error"
-        emit_block([style_fail("!!! ERROR !!!"), style_fail(f"[error] {clean_text(str(message_text))}")])
+        emit_block(
+            [
+                style_fail("!!! ERROR !!!"),
+                style_fail(f"[error] {clean_text(str(message_text))}"),
+            ]
+        )
 
 
 def main() -> int:
