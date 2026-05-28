@@ -70,3 +70,6 @@ eval/results/
 # Ralph Loop and Dashboard, for Phase 4.
 CoachWiggum/
 .claude-run/
+
+# Local-only dev tooling reference (personal, not a project deliverable)
+.claude/INSTALLED-PLUGINS.md
