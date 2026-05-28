@@ -1,0 +1,230 @@
+# IMPLEMENTATION_PLAN.md — Plan 4 Knowledge Base + Retrieval
+
+## Current status summary and code review
+
+**Git status:**
+- Current branch: `feature/chunking-and-processor`
+- Latest commit on branch: `8746fad` — test+feat(processor): add document processor with pdf/docx/xlsx support
+- Working tree: clean for slice files (document processor committed)
+- Recent PRs: #1 (Voyage client), #2 (FastAPI scaffold)
+
+**Runtime state:**
+- FastAPI app operational (GET /, GET /health, router stubs for /answer and /index)
+- Voyage client ready (embed_query, embed_documents with cost tracking)
+- Pinecone index `isq-agent-knowledge` created but empty (0 vectors)
+- Source corpus ready: 6 policy PDFs + 3 historical ISQ files in `source-corpus/` (gitignored)
+
+**Test coverage:**
+- 4 smoke tests for FastAPI scaffold (passing)
+- 8 tests for chunking module (written, committed)
+- 6 tests for document processor (written, committed, **6/6 passing**)
+- 8 tests for Pinecone client (6 original + 2 for describe_stats/delete_all, **8/8 passing**)
+- 5 tests for /index endpoint (written, **5/5 passing**)
+- 5 tests for query rewriter (written, committed, **5/5 passing**)
+- **Full suite: 36/36 passing**
+
+**Latest validations:**
+- `pytest tests/test_query_rewriter.py -v` — 5/5 passing (TDD red→green confirmed; red phase = AttributeError, no `app.rag.query_rewriter`)
+- `pytest -v` (full suite) — 36/36 passing, no regressions after query rewriter
+- `pytest tests/test_index_endpoint.py -v` — 5/5 passing (TDD red→green confirmed)
+- `pytest tests/test_pinecone_client.py -v` — 8/8 passing (added describe_stats + delete_all)
+- `pytest -v` (full suite) — 31/31 passing, no regressions
+- `pytest tests/test_document_processor.py -v` — 6/6 passing (ran in `.venv`, Python 3.14)
+- `pytest tests/test_main_smoke.py -v` — 4/4 passing
+- `uvicorn app.main:app` — server starts, structured JSON logging works, no secrets logged
+- `curl http://localhost:8000/` — returns service metadata
+- `curl http://localhost:8000/health` — returns {"status": "ok"}
+
+**Highest-risk open findings:**
+- EPERM Bash permission blocker no longer reproduces (resolved 2026-05-28); pytest runs cleanly inside `.venv`
+- Branch A implementation complete: chunking ✅, document processor ✅ (both committed + validated)
+- Branch A remaining steps are manual git ops (push, PR, squash-merge) — out of scope for the auto-loop
+- Branches B and C still pending
+
+## Active phase
+
+Branch C — Query Rewriter + Retriever (TDD-first). **All Branch C code is complete + validated.** Query rewriter ✅ (5/5). Retriever ✅ (6/6) — wires query_rewriter → Voyage embed → Pinecone query → source weighting → min_score/top_k. Full suite **42/42 passing**. All remaining Plan 4 steps are out-of-scope-for-auto-loop: live smoke tests (need real API keys) and manual git ops (push/PR/squash-merge/tag). The RAG core (chunking, document processing, indexing, query rewriting, retrieval) is code-complete.
+
+## Ordered checklist
+
+### Branch A (feature/chunking-and-processor)
+
+- [x] Checkout branch: `git checkout -b feature/chunking-and-processor`
+- [x] Write `rag-service/tests/test_chunking.py` (8 test cases from plan-04 Section 2)
+  - test_chunk_text_returns_chunks
+  - test_chunk_size_respects_max
+  - test_chunk_overlap_preserves_context
+  - test_chunks_preserve_metadata
+  - test_chunking_respects_section_boundaries
+  - test_chunking_handles_very_short_text
+  - test_chunking_handles_very_long_text
+  - test_chunking_assigns_chunk_index
+- [x] Run `cd rag-service && pytest tests/test_chunking.py -v` — confirm ModuleNotFoundError (completed in prior loop)
+- [x] Implement `rag-service/app/utils/chunking.py`
+  - Use RecursiveCharacterTextSplitter from langchain-text-splitters
+  - chunk_size=500, chunk_overlap=50
+  - separators=["\n\n", "\n", ". ", " ", ""]
+  - Return list of dicts with {text, chunk_index, total_chunks, **metadata}
+- [x] Run pytest again — confirm all 8 tests pass (completed in prior loop)
+- [x] Commit: `git add tests/test_chunking.py app/utils/chunking.py && git commit -m "test+feat(chunking): add chunker with 500/50 sliding window respecting sections"`
+- [x] Write `rag-service/tests/test_document_processor.py` (6 test cases from plan-04 Section 2)
+  - test_process_pdf_extracts_text
+  - test_process_docx_extracts_text
+  - test_process_xlsx_extracts_rows
+  - test_process_rejects_unsupported_type
+  - test_process_handles_corrupted_pdf
+  - test_process_preserves_page_numbers
+- [x] Run pytest to confirm failures — superseded: implementation already present from prior loop; validation deferred to the pass check below
+- [x] Implement `rag-service/app/utils/document_processor.py`
+  - PDF: pypdf (PdfReader)
+  - DOCX: python-docx (Document)
+  - XLSX: openpyxl (load_workbook)
+  - Return dict with {text, page_count, pages[]} for PDF
+  - Return dict with {text} for DOCX
+  - Return dict with {rows[]} for XLSX with question_text/answer_text detection
+- [x] Run pytest to confirm all 6 tests pass — **6/6 passing** (EPERM blocker resolved; ran in `.venv`)
+- [x] Commit: `test+feat(processor): add document processor with pdf/docx/xlsx support` (commit `8746fad`)
+- [ ] Push: `git push -u origin feature/chunking-and-processor`
+- [ ] Create PR: `gh pr create --title "feat: chunking and document processor with TDD" --body "..." --base main`
+- [ ] Squash-merge via GitHub UI
+- [ ] Cleanup: `git checkout main && git pull && git branch -d feature/chunking-and-processor`
+
+### Branch B (feature/pinecone-indexer)
+
+- [ ] Checkout: `git checkout -b feature/pinecone-indexer` — **deferred**: Branch A is not yet merged to main (push/PR/merge are manual, pending), so the Pinecone client slice was committed on `feature/chunking-and-processor` to avoid carrying unmerged Branch A commits into a B branch. Re-establish proper branch separation once Branch A merges.
+- [x] Write `rag-service/tests/test_pinecone_client.py` (6 tests — 5 from plan + 1 added for the locked ≤100 batching constraint)
+  - test_pinecone_client_initialises
+  - test_pinecone_client_handles_missing_index
+  - test_upsert_chunks_succeeds (mocked)
+  - test_upsert_chunks_batches_over_100 (mocked — guards the 100-vector batch limit)
+  - test_query_returns_matches (mocked)
+  - test_query_filters_by_min_score
+- [x] Run `pytest tests/test_pinecone_client.py -v` — confirmed TDD red phase (AttributeError: `app.core` has no attribute `pinecone_client`)
+- [x] Implement `rag-service/app/core/pinecone_client.py`
+  - PineconeClient class with upsert_chunks(), query() methods
+  - Connects to a named v5 index; raises `PineconeIndexError` if absent
+  - Batched upsert (limit 100 vectors per call)
+  - `query()` normalises SDK/dict responses to plain dicts and filters by min_score (default 0.5)
+  - Note: metadata schema (plan-04 Section 4) + vector IDs are built upstream by `/index` (next slice); the client upserts pre-built `{id, values, metadata}` vectors. Source weighting stays in the retriever (Branch C).
+- [x] Run `pytest tests/test_pinecone_client.py -v` — **6/6 passing**; full suite **24/24 passing**
+- [x] Commit: `test+feat(pinecone): add pinecone client with batched upsert and min_score filtering`
+- [x] Add `describe_stats()` + `delete_all()` to `PineconeClient` (idempotency prereq) with 2 mocked tests — **8/8 passing**
+- [x] Write `rag-service/tests/test_index_endpoint.py` (5 tests with TestClient + mocked Pinecone/Voyage/document_processor)
+  - test_index_endpoint_returns_200
+  - test_index_endpoint_chunks_corpus
+  - test_index_endpoint_is_idempotent
+  - test_index_endpoint_force_reindex
+  - test_index_endpoint_reports_metrics
+- [x] Run pytest — confirmed TDD red phase (AttributeError on patch targets / missing client methods)
+- [x] Implement `POST /index` in `rag-service/app/api/index.py` — **5/5 passing**
+  - Checks Pinecone stats; count > 0 and not force_reindex → "already_indexed"
+  - `detect_source_type()` (fails loudly on "unknown"); `discover_corpus_files()` recurses, .pdf/.docx only
+  - Per-page chunking for PDFs (accurate page metadata), single-blob for DOCX
+  - Builds plan-04 Section 4 metadata schema + stable vector IDs HERE
+  - Single batched Voyage embed call; batched Pinecone upsert
+  - Returns metrics: status, chunks_indexed, documents_indexed, indexing_time_ms, embedding_tokens_used, estimated_cost_usd
+- [x] Run pytest again — **5/5 passing**; full suite **31/31 passing**
+- [ ] Run smoke test: `curl -X POST http://localhost:8000/index -d '{"force_reindex":true}' -H "Content-Type: application/json"` — **deferred**: needs live Voyage + Pinecone API keys (out of scope for auto-loop)
+- [ ] Verify Pinecone dashboard: ~70 vectors appear — **deferred** (depends on live smoke test)
+- [x] Commit: `test+feat(api): implement /index endpoint with force_reindex flag`
+- [ ] Push, PR, squash-merge, cleanup — manual git ops
+
+**Deviations recorded during this slice (read before Branch C / live indexing):**
+- **Vector IDs:** plan-04 Section 4 specified section-number IDs (`isp-s3-c0`). Section numbers aren't reliably extractable from chunk text, so IDs are page/chunk-based instead: `{short_code}-p{page}-c{idx}` for PDFs, `{short_code}-c{idx}` for DOCX. Still **stable + deterministic** (re-indexing the same corpus regenerates identical IDs → clean upsert replace), which is the property that mattered.
+- **`isq_question_text` is always `None`:** the real historical ISQs are PDF/DOCX free text, not Q&A-structured rows. Per-Q&A splitting + populating `isq_question_text` needs a real Q&A parser. For now ISQ docs use the same text/page chunking as policies, tagged `source_type="historical_isq"` (which is what source weighting actually keys on). **Follow-up:** add a Q&A parser to populate `isq_question_text` if retrieval quality on ISQs proves weak (Plan 6/9 eval).
+
+### Branch C (feature/query-rewriter-and-retriever)
+
+- [ ] Checkout: `git checkout -b feature/query-rewriter-and-retriever` — **deferred** (same rationale as Branch B: Branch A not yet merged; query rewriter committed on `feature/chunking-and-processor`)
+- [x] Write `rag-service/tests/test_query_rewriter.py` (5 tests with mocked Anthropic)
+  - test_rewriter_expands_acronyms
+  - test_rewriter_preserves_intent
+  - test_rewriter_adds_policy_vocabulary
+  - test_rewriter_handles_empty_query
+  - test_rewriter_uses_isq_specific_prompt
+- [x] Run `pytest tests/test_query_rewriter.py -v` — confirmed TDD red phase (AttributeError: `app.rag` has no attribute `query_rewriter`)
+- [x] Implement `rag-service/app/rag/query_rewriter.py`
+  - System prompt verbatim from plan-04 Section 6 (module-level `SYSTEM_PROMPT`)
+  - Use Anthropic client (model from `settings.anthropic_model` = claude-sonnet-4-5)
+  - Empty/whitespace query short-circuits to "" with NO LLM call
+  - Return rewritten query string (`response.content[0].text.strip()`)
+- [x] Run `pytest tests/test_query_rewriter.py -v` — **5/5 passing**; full suite **36/36 passing**
+- [x] Commit files (test + implementation as separate commits)
+- [x] Write `rag-service/tests/test_retriever.py` (6 tests — 5 from plan + 1 for the weighting-before-floor invariant)
+  - test_retriever_uses_rewritten_query
+  - test_retriever_returns_top_k_chunks
+  - test_retriever_prefers_policies_over_isqs
+  - test_retriever_includes_source_metadata
+  - test_retriever_handles_no_matches
+  - test_retriever_applies_weighting_before_min_score_floor (added — locks the 0.5-floor honesty decision)
+- [x] Run `pytest tests/test_retriever.py -v` — confirmed TDD red phase (ModuleNotFoundError: `app.rag.retriever`)
+- [x] Implement `rag-service/app/rag/retriever.py`
+  - `Retriever` class, DI constructor (query_rewriter / voyage_client / pinecone_client; defaults build the real clients)
+  - `retrieve()`: query_rewriter.rewrite → Voyage embed_query → Pinecone query → source weighting → filter by min_score → sort desc → cap top_k
+  - Source weighting: policies × 1.0, historical_isqs × 0.95 (SOURCE_WEIGHTS map)
+  - min_score = 0.5, top_k = 5
+  - **Decision resolved:** calls `PineconeClient.query(..., min_score=0.0)` so the retriever owns the 0.5 floor and applies it AFTER weighting (×0.95 can push a borderline isq under 0.5 → honestly dropped). `_apply_weight` returns a shallow copy (no input mutation).
+- [x] Run `pytest tests/test_retriever.py -v` — **6/6 passing**; full suite **42/42 passing**, no regressions
+- [ ] Run smoke test in Python shell — **deferred**: needs live Anthropic + Voyage + Pinecone keys (out of scope for auto-loop)
+- [x] Commit files (test + implementation as separate commits)
+- [ ] Push, PR, squash-merge, cleanup — manual git ops
+
+### Post-merge (v0.1.0 milestone)
+
+- [ ] Checkout main, pull latest
+- [ ] Run full test suite: `cd rag-service && pytest -v` (expect ~35 tests passing)
+- [ ] Run real indexing: `curl POST /index` (expect ~70 chunks)
+- [ ] Verify Pinecone dashboard
+- [ ] Tag: `git tag -a v0.1.0 -m "v0.1.0 — RAG core operational (chunking, indexing, retrieval)"`
+- [ ] Push tag: `git push origin v0.1.0`
+
+## Notes / discoveries that matter for the next loop
+
+**RESOLVED BLOCKER (2026-05-28):**
+- Prior `EPERM: mkdir session-env` Bash permission error no longer reproduces.
+- Root cause was environmental (sandbox), not code. pytest runs cleanly with `cd rag-service && source .venv/bin/activate && pytest ...`.
+- Document processor validated (6/6) and committed (`8746fad`).
+
+**TDD discipline:**
+- Test files written BEFORE implementation (new pattern)
+- Each test file should fail with ModuleNotFoundError initially
+- Implementation makes tests pass
+- Chunking module followed this discipline successfully in prior loop
+
+**Plan 4 constraints:**
+- Chunk size: 500 chars (locked, from plan-04 Section 3)
+- Chunk overlap: 50 chars
+- Metadata schema: see plan-04 Section 4 for full JSON structure
+- Source weighting: policies 1.0, historical_isqs 0.95 (plan-04 Section 7)
+- min_score: 0.5
+- top_k: 5
+
+**Environment:**
+- pytest runs from `rag-service/` directory
+- Tests use mocks for external APIs (Pinecone, Anthropic, Voyage where needed)
+- Source corpus in `source-corpus/` (gitignored, not committed)
+
+**Dependencies to verify:**
+- langchain-text-splitters (chunking)
+- PyPDF2 or pymupdf (PDF parsing)
+- python-docx (DOCX parsing)
+- openpyxl (XLSX parsing)
+- pinecone-client (vector DB)
+- anthropic (query rewriter)
+
+## Next recommended build slice
+
+**Plan 4 RAG core is code-complete.** Chunking ✅, document processor ✅, Pinecone client ✅, /index endpoint ✅, query rewriter ✅, retriever ✅. Full suite **42/42 passing**. Every remaining Plan 4 checklist item needs either live API keys or manual git — both out of scope for the auto-loop:
+
+1. **Live smoke tests** (need real Anthropic + Voyage + Pinecone keys in repo-root `.env`):
+   - `curl -X POST http://localhost:8000/index -d '{"force_reindex":true}'` → expect ~70 vectors in Pinecone dashboard
+   - Python-shell smoke of `Retriever().retrieve("Do you use MFA?")` against the live index
+2. **Manual git ops** for Branches A/B/C: push, open PRs, squash-merge to main, branch cleanup. (Branches B and C code was committed onto `feature/chunking-and-processor` because Branch A never merged — re-establish branch separation OR merge the combined branch as one PR; decide before pushing.)
+3. **v0.1.0 milestone tag** after merge (`git tag -a v0.1.0`).
+
+The next *code* work is **Plan 5** (Branching Strategy + Git Workflow: pre-commit hooks, CI, test backfill for Voyage/main) or **Plan 6** (Question Extraction), depending on whether the human runs the live indexing + git merge first.
+
+**Retriever decision recorded (resolved this slice):** weighting is applied BEFORE the min_score floor. The retriever calls `PineconeClient.query(..., min_score=0.0)` (telling the client NOT to filter), applies ×0.95 to historical_isqs, then drops anything < 0.5, sorts descending, and caps at top_k=5. This keeps the 0.5 floor honest (a 0.51 isq → 0.4845 → correctly dropped, covered by `test_retriever_applies_weighting_before_min_score_floor`).
+
+**Note for live indexing later:** the `/index` endpoint constructs `PineconeClient()` and `VoyageClient()` at request time — both need valid API keys in the repo-root `.env`. The Pinecone index `isq-agent-knowledge` must exist (it does) before the first real `curl POST /index`.
+
