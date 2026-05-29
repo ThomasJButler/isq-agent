@@ -5,8 +5,9 @@ Thin orchestrator: validate, retrieve the top-k chunks (Retriever: query_rewrite
 Voyage -> Pinecone), then have the AnswerGenerator draft a grounded, self-scored
 answer. Upstream failures map to HTTP status so n8n retries sensibly: a transient
 outage (Anthropic/Voyage/Pinecone) -> 503; a permanent Anthropic error (bad key,
-malformed request) -> 502. Plan 8 will fold the four self-scores into one confidence
-scalar; this endpoint stops at the per-question result.
+malformed request) -> 502. Plan 8 folds the four self-scores + the top chunk's
+similarity into one confidence scalar and a review flag (aggregate_confidence), and
+returns it under a typed AnswerResponse so the contract is validated at the boundary.
 """
 
 import logging
@@ -24,6 +25,7 @@ from pinecone.exceptions import PineconeException
 from pydantic import BaseModel
 from voyageai.error import VoyageError
 
+from app.confidence.aggregator import aggregate_confidence
 from app.core.pinecone_client import PineconeIndexError
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
@@ -52,7 +54,28 @@ class AnswerRequest(BaseModel):
     total: int | None = None
 
 
-@router.post("/answer")
+class ConfidenceModel(BaseModel):
+    """The hybrid confidence verdict for one answer (Plan 8)."""
+
+    score: float
+    dimensions: dict[str, float]
+    needs_review: bool
+    review_reason: str | None
+
+
+class AnswerResponse(BaseModel):
+    """Typed /answer contract. FastAPI validates the handler's dict against this and
+    filters it to exactly these fields — dropping the now-internal self_score /
+    needs_review_reason and giving auto-generated OpenAPI docs at /docs."""
+
+    question_id: str | None
+    answer: str
+    citations: list[dict[str, Any]]
+    confidence: ConfidenceModel
+    metrics: dict[str, Any]
+
+
+@router.post("/answer", response_model=AnswerResponse)
 def answer_question(
     payload: AnswerRequest, request: Request, response: Response
 ) -> dict[str, Any]:
@@ -88,4 +111,25 @@ def answer_question(
             status_code=503, detail="Retrieval temporarily unavailable. Retry shortly."
         ) from exc
 
-    return {"question_id": payload.question_id, **result}
+    # Fold the four self-scores + the top chunk's similarity into one confidence
+    # scalar and a review flag. chunks[0]["score"] is the weighted top-chunk score
+    # (historical_isq matches are scaled in the retriever) — the intended input.
+    confidence = aggregate_confidence(
+        self_score=result["self_score"],
+        top_chunk_score=chunks[0]["score"] if chunks else 0.0,
+        llm_review_reason=result["needs_review_reason"],
+    )
+
+    # Return a plain dict; response_model=AnswerResponse validates + filters it.
+    return {
+        "question_id": payload.question_id,
+        "answer": result["answer"],
+        "citations": result["citations"],
+        "confidence": {
+            "score": confidence.score,
+            "dimensions": confidence.dimensions,
+            "needs_review": confidence.needs_review,
+            "review_reason": confidence.review_reason,
+        },
+        "metrics": result["metrics"],
+    }
