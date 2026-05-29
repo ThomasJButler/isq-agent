@@ -13,7 +13,7 @@ ordinals from the same extraction pass, in order. The source file is never mutat
 we load it, populate in memory, and save to output_path.
 """
 
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -37,22 +37,49 @@ _FLAGGED_FILL = PatternFill(
 )
 
 
-def render_xlsx(canonical: dict, output_path: str, source_path: str) -> str:
-    """Overlay the canonical answers onto a copy of the source questionnaire.
+def render_xlsx(
+    canonical: dict, output_path: str, source_path: str | None = None
+) -> str:
+    """Render the canonical answers to XLSX.
 
-    Returns the output path. The source file at source_path is not modified.
+    With a source workbook the answers are overlaid onto a copy of it; without one a
+    standalone workbook is built instead (PDF inputs have no source to overlay). The
+    source file at source_path is never modified.
     """
     answers = canonical.get("answers", [])
     summary = canonical.get("summary_metrics", {})
     meta = canonical.get("questionnaire_meta", {})
 
-    workbook = load_workbook(source_path)
-    sheet = workbook.active
-    _overlay_answers(sheet, answers)
+    if source_path is not None:
+        workbook = load_workbook(source_path)
+        sheet = workbook.active
+        _overlay_answers(sheet, answers)
+    else:
+        workbook = _build_standalone_workbook(answers)
     _add_summary_sheet(workbook, meta, summary)
 
     workbook.save(output_path)
     return output_path
+
+
+def _build_standalone_workbook(answers: list[dict]) -> Workbook:
+    """Build a fresh workbook (one row per question) when there's no source to overlay onto."""
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Responses"
+    sheet.append(["#", "Question", "Answer", "Needs review", "Review reason"])
+    for position, ans in enumerate(answers, start=1):
+        confidence = ans.get("confidence") or {}
+        sheet.append(
+            [
+                position,
+                ans.get("question_text", ""),
+                ans.get("answer", ""),
+                "yes" if confidence.get("needs_review") else "no",
+                confidence.get("review_reason") or "",
+            ]
+        )
+    return workbook
 
 
 def _find_response_column(sheet: Worksheet) -> tuple[int, int] | None:
