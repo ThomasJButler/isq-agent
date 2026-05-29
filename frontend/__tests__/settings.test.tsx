@@ -25,44 +25,14 @@ afterEach(() => {
 });
 
 describe("SettingsPage — structure", () => {
-  it("renders the heading and the four setting sections", () => {
+  it("renders the heading and the three setting sections", () => {
     render(<SettingsPage />);
     expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
-    expect(screen.getByText("API configuration")).toBeInTheDocument();
+    // No API-key inputs: on the hosted deploy the keys live in the backend env.
+    expect(screen.queryByText("API configuration")).not.toBeInTheDocument();
     expect(screen.getByText("Model")).toBeInTheDocument();
     expect(screen.getByText("Confidence threshold")).toBeInTheDocument();
     expect(screen.getByText("Knowledge base")).toBeInTheDocument();
-  });
-});
-
-describe("SettingsPage — API keys are masked with a reveal toggle", () => {
-  it("renders each key field masked (type=password) by default", () => {
-    render(<SettingsPage />);
-    expect(screen.getByLabelText("Anthropic API key")).toHaveAttribute("type", "password");
-    expect(screen.getByLabelText("Voyage API key")).toHaveAttribute("type", "password");
-    expect(screen.getByLabelText("Pinecone API key")).toHaveAttribute("type", "password");
-  });
-
-  it("toggles a single field between masked and revealed without touching the others", () => {
-    render(<SettingsPage />);
-    const anthropic = screen.getByLabelText("Anthropic API key");
-    const toggle = screen.getByRole("button", { name: "Show Anthropic API key" });
-
-    fireEvent.click(toggle);
-    expect(anthropic).toHaveAttribute("type", "text");
-    expect(screen.getByRole("button", { name: "Hide Anthropic API key" })).toBeInTheDocument();
-    // The other fields stay masked.
-    expect(screen.getByLabelText("Voyage API key")).toHaveAttribute("type", "password");
-
-    fireEvent.click(screen.getByRole("button", { name: "Hide Anthropic API key" }));
-    expect(anthropic).toHaveAttribute("type", "password");
-  });
-
-  it("lets the user edit a key value", () => {
-    render(<SettingsPage />);
-    const voyage = screen.getByLabelText("Voyage API key") as HTMLInputElement;
-    fireEvent.change(voyage, { target: { value: "pa-new-test-value" } });
-    expect(voyage.value).toBe("pa-new-test-value");
   });
 });
 
@@ -78,6 +48,12 @@ describe("SettingsPage — model radio group", () => {
     fireEvent.click(haiku);
     expect(haiku).toBeChecked();
     expect(sonnet).not.toBeChecked();
+  });
+
+  it("offers Sonnet 4.6 and Opus 4.7 as model choices", () => {
+    render(<SettingsPage />);
+    expect(screen.getByRole("radio", { name: /Claude Sonnet 4\.6/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Claude Opus 4\.7/i })).toBeInTheDocument();
   });
 });
 

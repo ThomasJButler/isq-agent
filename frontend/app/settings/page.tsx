@@ -1,36 +1,19 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Spinner } from "@/components/Spinner";
 import { Toast } from "@/components/Toast";
-import {
-  CheckIcon,
-  DatabaseIcon,
-  EyeIcon,
-  EyeOffIcon,
-  KeyIcon,
-  RefreshIcon,
-  SlidersIcon,
-  SparkIcon,
-} from "@/components/icons";
+import { CheckIcon, DatabaseIcon, RefreshIcon, SlidersIcon, SparkIcon } from "@/components/icons";
 
-// Screen 5 — Settings. The first Phase D screen: it wires the primitives
-// (Button, Card, Spinner, Toast) into a real /settings route. Ported from the
-// prototype's SettingsPage (pages.jsx:743) with three deliberate divergences:
-//  1. API keys are real masked inputs (type=password) with a per-field reveal
-//     toggle — the prototype only showed pre-masked strings. Keys are never
-//     persisted or logged here; the live save lands in the §8 glue step.
-//  2. The Save button is variant="primary" (the locked black-pill CTA), not the
-//     prototype's "accent" — accent maps to Crail orange, which the locked
-//     design reserves for the Powered-by-Claude badge only.
-//  3. The selected-radio accent + slider focus ring are river-blue, not the
-//     prototype's var(--accent) (orange). Em dashes in the slider labels are
-//     swapped for middle dots (Tom's voice bans em dashes).
-// State is local useState only (no backend yet); routing/layout is covered by
-// `npm run build` + the Slice 18 browser pass, not this jsdom render.
+// Screen 5 — Settings. Wires the primitives into a real /settings route, ported
+// from the prototype's SettingsPage (pages.jsx:743). No API-key inputs: on the
+// hosted deploy the keys live in the backend environment (Render), so users never
+// enter them. The Save button is the locked black-pill primary (the prototype's
+// "accent" maps to Crail orange, reserved for the Powered-by-Claude badge); the
+// radio + slider accents are river-blue, not orange. Local useState only.
 
 interface ModelOption {
   id: string;
@@ -47,6 +30,18 @@ const MODEL_OPTIONS: ModelOption[] = [
     desc: "Best quality. Use for customer-facing ISQs.",
   },
   {
+    id: "sonnet-4-6",
+    title: "Claude Sonnet 4.6",
+    meta: "newer Sonnet · ~$0.004/q",
+    desc: "Latest Sonnet tier, same price as 4.5.",
+  },
+  {
+    id: "opus-4-7",
+    title: "Claude Opus 4.7",
+    meta: "highest quality · ~$0.02/q",
+    desc: "Use for the hardest, highest-stakes ISQs.",
+  },
+  {
     id: "haiku",
     title: "Claude Haiku 4.5",
     meta: "fast · ~$0.0008/q",
@@ -61,11 +56,6 @@ export default function SettingsPage() {
   const [reindexing, setReindexing] = useState(false);
   const [reindexed, setReindexed] = useState(false);
   const [toast, setToast] = useState(false);
-  const [keys, setKeys] = useState({
-    anthropic: "sk-ant-DEMO-not-a-real-key",
-    voyage: "pa-DEMO-not-a-real-key",
-    pinecone: "pcsk-DEMO-not-a-real-key",
-  });
 
   const reindex = () => {
     setReindexing(true);
@@ -85,7 +75,7 @@ export default function SettingsPage() {
 
   return (
     <div style={{ minHeight: "calc(100vh - 64px)" }} data-screen-label="05 Settings">
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "56px var(--space-8) 96px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "56px var(--gutter) 96px" }}>
         <div style={{ marginBottom: 28 }}>
           <h1
             style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.01em", margin: "0 0 6px" }}
@@ -93,33 +83,12 @@ export default function SettingsPage() {
             Settings
           </h1>
           <p className="muted" style={{ fontSize: 14, margin: 0 }}>
-            Keys, model, and the threshold the agent uses to flag answers for review.
+            Model and the threshold the agent uses to flag answers for review.
+          </p>
+          <p className="muted" style={{ fontSize: 13, margin: "8px 0 0" }}>
+            No keys to enter. Runs use the hosted keys, so it&apos;s free to use for now.
           </p>
         </div>
-
-        <SettingSection
-          title="API configuration"
-          subtitle="Keys are masked on display. Saved keys are written to the encrypted local volume only."
-          icon={<KeyIcon size={16} />}
-        >
-          <ApiKeyField
-            label="Anthropic API key"
-            value={keys.anthropic}
-            onChange={(v) => setKeys({ ...keys, anthropic: v })}
-          />
-          <ApiKeyField
-            label="Voyage API key"
-            help="Used for embedding the corpus and per-question queries."
-            value={keys.voyage}
-            onChange={(v) => setKeys({ ...keys, voyage: v })}
-          />
-          <ApiKeyField
-            label="Pinecone API key"
-            help="Index name is configured via the PINECONE_INDEX env var."
-            value={keys.pinecone}
-            onChange={(v) => setKeys({ ...keys, pinecone: v })}
-          />
-        </SettingSection>
 
         <SettingSection
           title="Model"
@@ -145,6 +114,7 @@ export default function SettingsPage() {
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 16,
@@ -173,6 +143,7 @@ export default function SettingsPage() {
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 16,
@@ -243,49 +214,6 @@ function SettingSection({
       </div>
       <Card padding="lg">{children}</Card>
     </section>
-  );
-}
-
-function ApiKeyField({
-  label,
-  help,
-  value,
-  onChange,
-}: {
-  label: string;
-  help?: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const [revealed, setRevealed] = useState(false);
-  const id = useId();
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <label className="label" htmlFor={id}>
-        {label}
-      </label>
-      <div className="key-field">
-        <input
-          id={id}
-          className="input input-mono"
-          type={revealed ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <button
-          type="button"
-          className="key-reveal"
-          aria-label={revealed ? `Hide ${label}` : `Show ${label}`}
-          aria-pressed={revealed}
-          onClick={() => setRevealed((r) => !r)}
-        >
-          {revealed ? <EyeOffIcon size={15} /> : <EyeIcon size={15} />}
-        </button>
-      </div>
-      {help && <div className="help">{help}</div>}
-    </div>
   );
 }
 
@@ -360,8 +288,10 @@ function ConfidenceSlider({
       <div
         style={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 8,
           marginBottom: 14,
         }}
       >
