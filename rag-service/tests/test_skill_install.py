@@ -196,6 +196,21 @@ def test_reindex_corpus_returns_1_on_failure(monkeypatch):
 # packaging
 
 
+def test_process_isq_default_timeout_is_generous(monkeypatch):
+    """A full questionnaire is ~6s/question, so the client timeout must comfortably exceed
+    the old 120s (which timed out on a real 20-question run while the server was still working)."""
+    monkeypatch.delenv("ISQ_AGENT_TIMEOUT", raising=False)
+    pi = _load_script("process_isq.py")
+    assert pi._timeout() >= 300
+
+
+def test_process_isq_timeout_env_override(monkeypatch):
+    """The timeout is configurable for very large questionnaires."""
+    monkeypatch.setenv("ISQ_AGENT_TIMEOUT", "900")
+    pi = _load_script("process_isq.py")
+    assert pi._timeout() == 900.0
+
+
 def test_zip_packaging_produces_valid_skill_file(tmp_path):
     skill_root = SKILL_DIR.parent  # <repo>/skill
     out = tmp_path / "isq-agent.skill"
