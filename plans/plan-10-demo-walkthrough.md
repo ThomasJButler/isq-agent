@@ -128,7 +128,7 @@ Doesn't yet cover:
 
 > "Honest 'next steps' list — you explicitly asked for this:
 >
-> 1. **PDF renderer** — currently DOCX + XLSX + JSON ship. PDF was on the v1 list, I deferred it because the layout-detection complexity for true overlay wasn't worth the day. Mockups in the design spec already cover what the typeset version would look like.
+> 1. **PDF renderer** — currently DOCX + XLSX + JSON ship. PDF was on the v1 list, I deferred it because the layout-detection complexity for true overlay wasn't worth the day. The typeset PDF would reuse the navy/amber compliance styling already locked for the DOCX/XLSX (Plan 1 §7a) — that's the document look; the design-spec mockups cover the web dashboard, which is a separate surface.
 >
 > 2. **MCP layer** — wrap the `/answer` and `/extract-questions` endpoints as MCP tools so any Claude Code chat anywhere can use them. About 2 hours of build. Means the ISQ Agent can be invoked from inside a Claude Code conversation without leaving the editor.
 >
