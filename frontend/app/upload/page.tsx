@@ -75,8 +75,8 @@ const CONTAINER: CSSProperties = {
   maxWidth: 720,
   marginLeft: "auto",
   marginRight: "auto",
-  paddingLeft: "var(--space-8)",
-  paddingRight: "var(--space-8)",
+  paddingLeft: "var(--gutter)",
+  paddingRight: "var(--gutter)",
 };
 
 export default function UploadPage(): JSX.Element {
@@ -177,6 +177,7 @@ export default function UploadPage(): JSX.Element {
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 16,

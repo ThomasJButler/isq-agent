@@ -77,8 +77,8 @@ const CONTAINER: CSSProperties = {
   maxWidth: 980,
   marginLeft: "auto",
   marginRight: "auto",
-  paddingLeft: "var(--space-8)",
-  paddingRight: "var(--space-8)",
+  paddingLeft: "var(--gutter)",
+  paddingRight: "var(--gutter)",
 };
 
 const MONO_LABEL: CSSProperties = { fontSize: 11, fontFamily: "var(--font-mono)" };
@@ -373,14 +373,16 @@ export default function ProcessingPage(): JSX.Element {
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: 8,
               padding: "12px 18px",
               borderBottom: "1px solid var(--border)",
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 500 }}>Activity</div>
-            <div className="muted" style={MONO_LABEL}>
+            <div className="muted" style={{ ...MONO_LABEL, minWidth: 0, overflowWrap: "anywhere" }}>
               X-Request-Id: {id}
             </div>
           </div>
@@ -392,6 +394,7 @@ export default function ProcessingPage(): JSX.Element {
               color: "var(--fg-muted)",
               maxHeight: 160,
               overflowY: "auto",
+              overflowWrap: "anywhere",
               lineHeight: 1.8,
             }}
           >

@@ -15,7 +15,7 @@ export function Footer(): JSX.Element {
       style={{
         borderTop: "1px solid var(--border)",
         marginTop: 80,
-        padding: "28px var(--space-8)",
+        padding: "28px var(--gutter)",
       }}
     >
       <div

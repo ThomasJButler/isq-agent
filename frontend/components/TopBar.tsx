@@ -60,9 +60,15 @@ export function TopBar(): JSX.Element {
             </Link>
           );
         })}
-        <a href={REPO_URL} target="_blank" rel="noreferrer" className="repo-link">
+        <a
+          href={REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="repo-link"
+          aria-label="GitHub repo"
+        >
           <LinkIcon />
-          Repo
+          <span className="repo-label">Repo</span>
         </a>
         {/* Far-right light/dark toggle (Slice 17 tweak #6) — the visible control
             for the dark theme the tokens already support. */}

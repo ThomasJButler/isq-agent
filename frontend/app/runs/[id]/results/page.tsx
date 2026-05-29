@@ -49,8 +49,8 @@ const CONTAINER: CSSProperties = {
   maxWidth: 1120,
   marginLeft: "auto",
   marginRight: "auto",
-  paddingLeft: "var(--space-8)",
-  paddingRight: "var(--space-8)",
+  paddingLeft: "var(--gutter)",
+  paddingRight: "var(--gutter)",
 };
 
 const MONO: CSSProperties = { fontFamily: "var(--font-mono)" };
@@ -103,7 +103,7 @@ function MiniStat({
 // gone: the adapter invents no page or source filename and derives no avg score,
 // so the honest columns are the citation id, its snippet, and the usage count.
 function CitationsTab({ model }: { model: RunViewModel }): JSX.Element {
-  const cols = "140px 1fr 130px";
+  const cols = "clamp(72px, 18vw, 140px) 1fr clamp(64px, 18vw, 130px)";
   const { top_citations } = model;
   return (
     <Card padding="none" style={{ overflow: "hidden" }}>
@@ -157,7 +157,7 @@ function CitationsTab({ model }: { model: RunViewModel }): JSX.Element {
 // split); this shows only the real summary figures and the per-answer metrics.
 function MetricsTab({ model }: { model: RunViewModel }): JSX.Element {
   const { summary, answers } = model;
-  const cols = "48px 1fr 80px 90px 80px";
+  const cols = "48px minmax(120px, 1fr) 80px 90px 80px";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Card padding="lg">
@@ -198,67 +198,73 @@ function MetricsTab({ model }: { model: RunViewModel }): JSX.Element {
         <div className="eyebrow" style={{ marginBottom: 14 }}>
           Per-question telemetry
         </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: cols,
-            gap: 12,
-            padding: "0 4px 8px",
-            fontSize: 11,
-            color: "var(--fg-muted)",
-            borderBottom: "1px solid var(--border)",
-          }}
-        >
-          <span>#</span>
-          <span>Question</span>
-          <span style={{ textAlign: "right" }}>Conf.</span>
-          <span style={{ textAlign: "right" }}>Latency</span>
-          <span style={{ textAlign: "right" }}>Cost</span>
-        </div>
-        <div style={{ maxHeight: 320, overflowY: "auto" }}>
-          {answers.map((a) => (
+        {/* 5-column table: scroll it inside itself on mobile (the global
+            overflow-x:clip guard would otherwise crop the rightmost column). */}
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 480 }}>
             <div
-              key={a.index}
               style={{
                 display: "grid",
                 gridTemplateColumns: cols,
                 gap: 12,
-                padding: "8px 4px",
+                padding: "0 4px 8px",
+                fontSize: 11,
+                color: "var(--fg-muted)",
                 borderBottom: "1px solid var(--border)",
-                fontSize: 12,
-                alignItems: "center",
               }}
             >
-              <span className="muted" style={MONO}>
-                Q{String(a.index).padStart(2, "0")}
-              </span>
-              <span
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  paddingRight: 12,
-                }}
-              >
-                {a.question}
-              </span>
-              <span style={{ textAlign: "right" }}>
-                {a.confidence ? (
-                  <ConfidenceBar score={a.confidence.score} compact />
-                ) : (
-                  <span className="muted" style={{ fontSize: 11 }}>
-                    n/a
-                  </span>
-                )}
-              </span>
-              <span className="muted" style={{ ...MONO, textAlign: "right", fontSize: 11 }}>
-                {formatDuration(a.metrics.latency_ms)}
-              </span>
-              <span className="muted" style={{ ...MONO, textAlign: "right", fontSize: 11 }}>
-                {formatCurrency(a.metrics.cost_usd)}
-              </span>
+              <span>#</span>
+              <span>Question</span>
+              <span style={{ textAlign: "right" }}>Conf.</span>
+              <span style={{ textAlign: "right" }}>Latency</span>
+              <span style={{ textAlign: "right" }}>Cost</span>
             </div>
-          ))}
+            <div style={{ maxHeight: 320, overflowY: "auto" }}>
+              {answers.map((a) => (
+                <div
+                  key={a.index}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: cols,
+                    gap: 12,
+                    padding: "8px 4px",
+                    borderBottom: "1px solid var(--border)",
+                    fontSize: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <span className="muted" style={MONO}>
+                    Q{String(a.index).padStart(2, "0")}
+                  </span>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      paddingRight: 12,
+                    }}
+                  >
+                    {a.question}
+                  </span>
+                  <span style={{ textAlign: "right" }}>
+                    {a.confidence ? (
+                      <ConfidenceBar score={a.confidence.score} compact />
+                    ) : (
+                      <span className="muted" style={{ fontSize: 11 }}>
+                        n/a
+                      </span>
+                    )}
+                  </span>
+                  <span className="muted" style={{ ...MONO, textAlign: "right", fontSize: 11 }}>
+                    {formatDuration(a.metrics.latency_ms)}
+                  </span>
+                  <span className="muted" style={{ ...MONO, textAlign: "right", fontSize: 11 }}>
+                    {formatCurrency(a.metrics.cost_usd)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </Card>
     </div>

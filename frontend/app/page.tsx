@@ -40,8 +40,8 @@ const CONTAINER: CSSProperties = {
   maxWidth: 1200,
   marginLeft: "auto",
   marginRight: "auto",
-  paddingLeft: "var(--space-8)",
-  paddingRight: "var(--space-8)",
+  paddingLeft: "var(--gutter)",
+  paddingRight: "var(--gutter)",
 };
 
 const MONO: CSSProperties = { fontFamily: "var(--font-mono)" };
@@ -105,7 +105,13 @@ export default function Home() {
             </div>
             <h1
               className="pretty"
-              style={{ margin: "0 0 18px", maxWidth: 720, fontSize: 44, lineHeight: 1.1 }}
+              style={{
+                margin: "0 0 18px",
+                maxWidth: 720,
+                fontSize: "clamp(28px, 8vw, 44px)",
+                lineHeight: 1.1,
+                overflowWrap: "break-word",
+              }}
             >
               Answer supplier security questionnaires with grounded AI.
             </h1>
@@ -141,6 +147,10 @@ export default function Home() {
                 How it works
               </Button>
             </div>
+            <p className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 0 }}>
+              Free to use right now, no API key needed. I&apos;m covering the costs for a limited
+              time, so have a go while it&apos;s open.
+            </p>
           </div>
 
           {/* Inline product snapshot — small, restrained, static. */}
@@ -166,7 +176,10 @@ export default function Home() {
                   }}
                 />
               ))}
-              <span className="muted" style={{ ...MONO, fontSize: 11, marginLeft: 8 }}>
+              <span
+                className="muted"
+                style={{ ...MONO, fontSize: 11, marginLeft: 8, overflowWrap: "anywhere" }}
+              >
                 isq-agent.local · /runs/sun-20260525-001/results
               </span>
             </div>
@@ -174,8 +187,10 @@ export default function Home() {
               <div
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  gap: "var(--space-2)",
                   marginBottom: 18,
                 }}
               >
@@ -292,7 +307,7 @@ export default function Home() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 240 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
               Grounded, not generative.
             </div>

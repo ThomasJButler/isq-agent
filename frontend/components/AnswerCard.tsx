@@ -218,7 +218,7 @@ export function AnswerCard({ answer, open, onToggle }: AnswerCardProps): JSX.Ele
             }}
           >
             {answer.citations.length > 0 && (
-              <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="muted" style={{ fontSize: 11, fontWeight: 500, marginBottom: 8 }}>
                   CITATIONS
                 </div>
@@ -238,7 +238,7 @@ export function AnswerCard({ answer, open, onToggle }: AnswerCardProps): JSX.Ele
             )}
 
             {confidence && (
-              <div style={{ minWidth: 260 }}>
+              <div style={{ minWidth: 0 }}>
                 <div className="muted" style={{ fontSize: 11, fontWeight: 500, marginBottom: 8 }}>
                   CONFIDENCE BREAKDOWN
                 </div>
