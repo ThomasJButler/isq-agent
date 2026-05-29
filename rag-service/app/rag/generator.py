@@ -20,6 +20,7 @@ from typing import Any
 from anthropic import Anthropic
 
 from app.core.config import settings
+from app.core.llm import create_message
 from app.core.isq_prompts import (
     ANSWER_FEW_SHOTS,
     ANSWER_SYSTEM_PROMPT,
@@ -103,7 +104,8 @@ class AnswerGenerator:
         )
 
         start = time.perf_counter()
-        response = self.client.messages.create(
+        response = create_message(
+            self.client,
             model=self.model,
             max_tokens=self.MAX_TOKENS,
             temperature=0,
