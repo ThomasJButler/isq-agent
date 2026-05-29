@@ -135,6 +135,19 @@ describe("Slice 11 — the diagonal ribbon is river-blue only, never orange", ()
   });
 });
 
+describe("Slice 13 — the landing eyebrow label is river-blue, never orange", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("paints the eyebrow in river-blue and keeps it orange-free", () => {
+    // The prototype's `.eyebrow` is a small uppercase section label coloured
+    // var(--river-blue). It's non-interactive, but river-blue is the design's
+    // single accent, so this is on-system — not the Crail-orange leak the rule
+    // guards against.
+    expect(ruleBody(".eyebrow")).toMatch(/river-blue/);
+    expect(ruleBody(".eyebrow"), ".eyebrow must not reference orange").not.toMatch(ORANGE);
+  });
+});
+
 describe("Slice 12 — settings form + controls stay river-blue, never orange", () => {
   const ORANGE = /claude-orange|#cc785c/i;
 
