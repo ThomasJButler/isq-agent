@@ -5,7 +5,8 @@ questions. Screen-share: the n8n canvas, VS Code with the repo, the rendered out
 public GitHub repo.
 
 Every number in here comes from a real run against the live service on 2026-05-29, not an
-estimate. Where I quote a flagged reason, it's the exact text the system produced.
+estimate. Where I quote a flagged reason, it's the system's own words, minus the internal
+`LLM flagged:` prefix it puts on the front.
 
 ---
 
@@ -82,8 +83,8 @@ Timing: about 3 minutes. The show-don't-tell half.
 > answer says, straight out, that Northstar is software-only and doesn't operate OT, then
 > reframes to the access controls we do have. And it flagged itself with this reason:"
 
-> "*The question asks specifically about operational technology systems. Northstar Labs is a
-> software-only company and does not operate OT environments. The answer reframes to our
+> "*The question asks specifically about operational technology (OT) systems. Northstar Labs is
+> a software-only company and does not operate OT environments. The answer reframes to our
 > privileged access controls for production and administrative systems. Recommend manual review
 > to confirm the requester accepts this framing or requires clarification.*"
 
