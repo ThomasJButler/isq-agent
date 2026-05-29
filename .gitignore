@@ -76,4 +76,7 @@ CoachWiggum/
 .claude/INSTALLED-PLUGINS.md
 .claude/settings.json
 
+# Personal scratch space (never a deliverable — local entertainment, experiments, etc.)
+scratch/
+
 design/design_handoff_isq_agent/designs/prototype-hybrid/pngs
