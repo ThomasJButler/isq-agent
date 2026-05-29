@@ -45,7 +45,28 @@ class ExtractRequest(BaseModel):
     filename: str
 
 
-@router.post("/extract-questions")
+class ExtractedQuestion(BaseModel):
+    """One extracted question. question_id is deterministic; index is 1-based."""
+
+    question_id: str
+    index: int
+    text: str
+    page: int | None = None
+
+
+class ExtractResponse(BaseModel):
+    """Typed /extract-questions contract — mirrors /answer's response_model so the
+    service is uniformly typed and both endpoints get OpenAPI docs at /docs. FastAPI
+    validates the handler's dict against this at the boundary."""
+
+    questions: list[ExtractedQuestion]
+    total: int
+    extraction_method: str
+    warnings: list[str]
+    metrics: dict[str, Any]
+
+
+@router.post("/extract-questions", response_model=ExtractResponse)
 def extract_questions(
     payload: ExtractRequest, request: Request, response: Response
 ) -> dict[str, Any]:
