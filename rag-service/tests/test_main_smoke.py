@@ -61,3 +61,22 @@ def test_lifespan_does_not_log_secrets(caplog):
     for secret in secrets:
         if secret and len(secret) > 6:
             assert secret not in captured, "API key leaked in logs"
+
+
+def test_allowed_origins_defaults_to_local_n8n(monkeypatch):
+    monkeypatch.delenv("ALLOWED_ORIGINS", raising=False)
+    from app.main import _allowed_origins
+
+    assert _allowed_origins() == ["http://localhost:5678", "http://n8n:5678"]
+
+
+def test_allowed_origins_reads_env_and_trims(monkeypatch):
+    monkeypatch.setenv(
+        "ALLOWED_ORIGINS", "https://isq-agent-xyz.vercel.app, http://localhost:5678"
+    )
+    from app.main import _allowed_origins
+
+    assert _allowed_origins() == [
+        "https://isq-agent-xyz.vercel.app",
+        "http://localhost:5678",
+    ]
