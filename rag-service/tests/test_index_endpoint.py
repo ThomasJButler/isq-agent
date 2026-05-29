@@ -213,3 +213,39 @@ def test_index_endpoint_reports_metrics(
     assert data["estimated_cost_usd"] == 0.00023
     assert isinstance(data["indexing_time_ms"], (int, float))
     assert data["indexing_time_ms"] >= 0
+
+
+# Corpus discovery
+
+
+def test_discover_corpus_files_scopes_to_knowledge_base(tmp_path):
+    """Only the policy + historical-ISQ folders are indexed.
+
+    Inbound questionnaires (inputs, not knowledge) and stray root files (the
+    assessment brief, README) must be excluded — otherwise detect_source_type
+    can't classify them and the whole /index run aborts with a 422.
+    """
+    from app.api.index import discover_corpus_files
+
+    policies = tmp_path / "Northstar Labs Policies"
+    completed = tmp_path / "Northstar Labs Completed ISQs"
+    questionnaires = tmp_path / "Northstar Labs Questionnaires"
+    for directory in (policies, completed, questionnaires):
+        directory.mkdir()
+
+    (policies / "Northstar_Labs_Information_Security_Policy.pdf").touch()
+    (completed / "Northstar_Labs_Previous_ISQ_Completed_01.pdf").touch()
+    # Excluded: an inbound questionnaire, the challenge brief, a README.
+    (questionnaires / "Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf").touch()
+    (tmp_path / "AI Engineer Technical Challenge.pdf").touch()
+    (tmp_path / "README.md").touch()
+
+    found = discover_corpus_files(tmp_path)
+    names = {p.name for p in found}
+
+    assert names == {
+        "Northstar_Labs_Information_Security_Policy.pdf",
+        "Northstar_Labs_Previous_ISQ_Completed_01.pdf",
+    }
+    assert "Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf" not in names
+    assert "AI Engineer Technical Challenge.pdf" not in names

@@ -42,6 +42,13 @@ CHUNK_OVERLAP = 50
 # plan-04 Section 5 says index .pdf and .docx files only.
 SUPPORTED_SUFFIXES = (".pdf", ".docx")
 
+# The knowledge base is only the policy + historical-ISQ folders. Inbound
+# questionnaires (they're inputs to /extract-questions, not knowledge) and stray
+# root files (the assessment brief, README) also live under source-corpus and must
+# NOT be indexed — they don't classify as policy/historical_isq, so sweeping them
+# in would abort the whole run via detect_source_type's loud-fail guard.
+KB_SUBDIRS = ("Northstar Labs Policies", "Northstar Labs Completed ISQs")
+
 
 class IndexRequest(BaseModel):
     """Body for POST /index. force_reindex wipes the index before re-indexing."""
@@ -64,12 +71,20 @@ def detect_source_type(filename: str) -> str:
 
 
 def discover_corpus_files(corpus_dir: Path = CORPUS_DIR) -> list[Path]:
-    """Recursively list supported corpus files, sorted for deterministic IDs."""
-    files = [
-        p
-        for p in corpus_dir.rglob("*")
-        if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
-    ]
+    """List supported knowledge-base files (policies + historical ISQs), sorted.
+
+    Only KB_SUBDIRS are searched, so inbound questionnaires and non-corpus files
+    (the assessment brief, README) are excluded. Sorted for deterministic IDs.
+    """
+    files: list[Path] = []
+    for subdir in KB_SUBDIRS:
+        kb_dir = corpus_dir / subdir
+        if kb_dir.is_dir():
+            files.extend(
+                p
+                for p in kb_dir.rglob("*")
+                if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
+            )
     return sorted(files)
 
 
