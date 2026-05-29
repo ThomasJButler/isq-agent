@@ -71,13 +71,32 @@ class PineconeClient:
         Returns:
             {"upserted_count": int} — total vectors sent across all batches.
         """
+        cleaned = [self._drop_null_metadata(chunk) for chunk in chunks]
+
         total = 0
-        for start in range(0, len(chunks), self.UPSERT_BATCH_SIZE):
-            batch = chunks[start : start + self.UPSERT_BATCH_SIZE]
+        for start in range(0, len(cleaned), self.UPSERT_BATCH_SIZE):
+            batch = cleaned[start : start + self.UPSERT_BATCH_SIZE]
             self.index.upsert(vectors=batch)
             total += len(batch)
 
         return {"upserted_count": total}
+
+    @staticmethod
+    def _drop_null_metadata(chunk: dict[str, Any]) -> dict[str, Any]:
+        """Return the chunk with None-valued metadata keys removed.
+
+        Pinecone metadata accepts string / number / boolean / list-of-strings, but
+        rejects a JSON null. Fields like section_title and isq_question_text are None
+        for sources they don't apply to (e.g. policies have no ISQ question), so they
+        must be omitted rather than sent. Falsy-but-valid values (0, False, "") stay.
+        """
+        metadata = chunk.get("metadata")
+        if not metadata:
+            return chunk
+        non_null = {k: v for k, v in metadata.items() if v is not None}
+        if len(non_null) == len(metadata):
+            return chunk  # nothing dropped — preserve the original object
+        return {**chunk, "metadata": non_null}
 
     def describe_stats(self) -> dict[str, Any]:
         """

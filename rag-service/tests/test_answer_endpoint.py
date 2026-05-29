@@ -95,7 +95,73 @@ def test_answer_endpoint_returns_200(mock_retriever, mock_generator, client):
     assert response.status_code == 200
     body = response.json()
     assert body["answer"]
-    assert "citations" in body and "self_score" in body and "metrics" in body
+    # Plan 8: response_model folds the four self-scores into a confidence object and
+    # filters the now-internal top-level self_score / needs_review_reason out.
+    assert "citations" in body and "confidence" in body and "metrics" in body
+    assert "self_score" not in body
+    assert {"score", "dimensions", "needs_review", "review_reason"} <= set(
+        body["confidence"]
+    )
+
+
+@patch("app.api.answer.AnswerGenerator")
+@patch("app.api.answer.Retriever")
+def test_answer_endpoint_confidence_not_flagged_on_strong_answer(
+    mock_retriever, mock_generator, client
+):
+    """A strong, grounded answer (canned fixture) is not flagged for review."""
+    _setup(mock_retriever, mock_generator)
+
+    response = client.post("/answer", json={"question": "Do you enforce MFA?"})
+
+    confidence = response.json()["confidence"]
+    assert confidence["needs_review"] is False
+    assert confidence["review_reason"] is None
+    assert set(confidence["dimensions"]) == {
+        "cites_policy",
+        "on_topic",
+        "vendor_tone",
+        "complete",
+    }
+
+
+@patch("app.api.answer.AnswerGenerator")
+@patch("app.api.answer.Retriever")
+def test_answer_endpoint_flags_low_confidence_answer(
+    mock_retriever, mock_generator, client
+):
+    """A weak self-score aggregates below threshold → confidence flags for review."""
+    weak = _canned()
+    weak["self_score"] = {
+        "cites_policy": 0.3,
+        "on_topic": 0.3,
+        "vendor_tone": 0.3,
+        "complete": 0.3,
+    }
+    _setup(mock_retriever, mock_generator, result=weak)
+
+    response = client.post("/answer", json={"question": "Do you enforce MFA?"})
+
+    confidence = response.json()["confidence"]
+    assert confidence["needs_review"] is True
+    assert confidence["review_reason"]
+
+
+@patch("app.api.answer.AnswerGenerator")
+@patch("app.api.answer.Retriever")
+def test_answer_endpoint_applies_retrieval_sanity_check(
+    mock_retriever, mock_generator, client
+):
+    """A weak top chunk + an over-confident cites_policy → cites_policy is downgraded."""
+    weak_chunk = [{"id": "c0", "score": 0.6, "metadata": {"text": "x", "page": 1}}]
+    _setup(
+        mock_retriever, mock_generator, chunks=weak_chunk
+    )  # canned cites_policy = 1.0
+
+    response = client.post("/answer", json={"question": "Do you enforce MFA?"})
+
+    dimensions = response.json()["confidence"]["dimensions"]
+    assert dimensions["cites_policy"] == pytest.approx(0.8)
 
 
 def test_answer_endpoint_returns_422_for_missing_question(client):

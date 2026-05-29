@@ -179,3 +179,32 @@ That sentence is worth 10 seconds in the demo. Most AI engineers can't talk abou
 ## Locked.
 
 This decision is closed. Build Iteration 3 with the six tweaks above. No further design iteration before submission. The Next.js dashboard, if shipped, follows this spec exactly.
+
+---
+
+## Post-audit addendum (2026-05-29) — frontend review outcome
+
+A read-only frontend-design audit (multi-agent + live browser render of the prototype) on 2026-05-29 confirmed the design is distinctive and production-grade, and that nothing about it blocks Plans 8/9 (backend). It surfaced items to handle **before the dashboard is built** — recorded here so they aren't lost. The locked decision above is unchanged.
+
+### Data-contract reconciliation (do this in the dashboard build, NOT in Plan 8)
+
+The prototype mock (`design/.../prototype-hybrid/data.js`) and Plan 8's `/answer` `response_model` disagree on shape. Plan 8's nested shape is canonical — keep it; adapt the dashboard (a thin adapter):
+
+- **Confidence dimensions:** mock reads flat `confidence.cites_policy`; Plan 8 emits `confidence.dimensions.cites_policy`. (The math matches — same weights 0.40/0.25/0.20/0.15, same 0.60 threshold, same green/amber/brick bands.)
+- **Flag flag:** mock reads `answer.needs_review`; Plan 8 emits `confidence.needs_review`.
+- **Citations:** mock expects `{id, source, page}` ("ISP §5.2"); the API returns `{source_id: "nlisp-p1-c0", text_snippet}` (page/chunk vector IDs, not section refs). Either re-attach `source`/`page` in the generator/orchestrator or render `source_id`.
+- **Run envelope:** `meta / summary / top_citations / stages`, `average_confidence`, `flagged_question_indices` (canonical name; mock calls it `flagged_indices`) have no backend producer — `/answer` is per-question. Decide where run-aggregation lives (n8n or a new `/runs` endpoint). See Plan 9 §0a (canonical-JSON assembler).
+- Add `failed`/`confidence=null` handling, the `all_failed` banner, 375px responsive, and Results loading skeletons — states the prototype doesn't model.
+
+### Six must-do tweaks — status as of 2026-05-29
+
+- **#1 sparkle clip-path → inline SVG** — pending (clip-path still live; an SVG glyph exists in `icons.jsx` but isn't wired to the wordmark).
+- **#2 ribbon stress-test** — holds visually at 1440 and 375 (clean directional gradient, not a blob); still the most-flagged element — keep it crisp or add a flat export fallback.
+- **#3 press-scale 0.985 → 0.99** — pending (still 0.985).
+- **#4 orange-leakage — FIXED in the prototype.** The Settings model-radio and the Processing "Generate" latency bar were leaking Crail via `--accent`; both are now RiverAI blue. When porting, re-point `--accent` → `--river-blue` and re-run the grep.
+- **#5 Source Serif 4 on answer body** — pending (answer body still renders Geist sans).
+- **#6 visible light/dark toggle** — pending; dark mode is also only half-wired (topbar darkens, cards stay light) — finish the dark theme, not just the toggle.
+
+### Screenshots / README design story
+
+17 reference PNGs exist at `design/.../prototype-hybrid/pngs/` (10 screens + 7 wireframes), kept out of git by choice. Deliver the README design story via GitHub asset URLs (see Plan 11 §2b). Lead shots: `01-landing`, `05-results-answer-expanded`, `wireframe-06-userflow`.

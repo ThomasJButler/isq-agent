@@ -30,6 +30,8 @@
 - **Visual style for the rendered DOCX/XLSX/PDF outputs is the navy/amber/Calibri compliance palette from Plan 1 Section 7a.** This is correct — printed compliance documents should look like compliance documents. (Confirmed during the Claude Design pass: the dashboard's warm-paper aesthetic does NOT propagate to rendered outputs.)
 - **Clarification on `text_snippet`:** the `text_snippet` field in citations is **200 characters max** (a preview). The full chunk text stored in Pinecone metadata is **500 characters** (the chunk_size constant from Plan 4). These are different fields, do not conflate.
 - **Dashboard design (stretch deliverable) is LOCKED to Iteration 3 — the Claude × RiverAI Hybrid.** See `plans/design-decision-locked.md` for the full decision record + must-do tweaks. Source files live at `design/design_handoff_isq_agent/designs/prototype-hybrid/`.
+- **Prerequisite — canonical-JSON assembler.** These renderers consume a single canonical envelope (`questionnaire_meta` + `answers[]` + `summary_metrics` + `banner`), but `/answer` returns **one question** today. Something must loop `/answer` over the extracted questions, aggregate per-question results, and compute `summary_metrics` (incl. `average_confidence`, `flagged_question_indices`). Decide where this lives — n8n orchestration or a small FastAPI helper — and treat it as a Plan 9 prerequisite. Per-question `confidence` is the nested object `{score, dimensions, needs_review, review_reason}` from Plan 8 (the §5 flat `needs_review`/`review_reason` are illustrative — read them off `confidence`).
+- **Download delivery (only if the stretch dashboard is built).** `render_<fmt>()` returns a local `output_path`; the dashboard Results page needs browser-downloadable URLs. The canonical envelope has no `run_id` today — add one and expose either a `/runs/{id}/download/{fmt}` route or n8n static serving. Out of scope for v1 (n8n hands the files back directly), noted so it isn't a surprise later.
 
 ---
 
@@ -152,6 +154,8 @@ Same style applied via reportlab styles:
 ## 4. Output schemas
 
 ### DOCX structure (top to bottom)
+
+**Field note:** `{requester_name}` here (and `RESPONSE TO {requester_name}` on the PDF cover page below) is populated from `questionnaire_meta.origin` — the field the canonical fixtures actually use (e.g. "Sunflowers Charity", "Blackridge Wind Energy"). Use one name across the templates, the renderer, and the fixtures.
 
 ```
 [Northstar Labs header banner]

@@ -89,6 +89,15 @@ See `docs/architecture.md` for the full architecture writeup including:
 - Source weighting at three layers (retrieval, prompt, self-score)
 - Cross-system observability via X-Request-Id propagation
 
+## Design (stretch)
+
+A thin Next.js dashboard was designed though not built for v1 — the functional MVP runs through n8n's form trigger. Three visual iterations were produced; the lead is the "Claude × RiverAI Hybrid": a Claude warm-paper foundation with RiverAI black-pill CTAs, a blue interactive accent, and a single "Powered by Claude" badge.
+
+![ISQ Agent — landing](LANDING_SCREENSHOT_URL)
+![ISQ Agent — results: a flagged answer with its four-dimension confidence breakdown](RESULTS_SCREENSHOT_URL)
+
+Full handoff — design tokens, components, five screens, interactive prototype: [`design/design_handoff_isq_agent/`](design/design_handoff_isq_agent/).
+
 ## Reused components
 
 See `docs/attributions.md` for the patterns and code lifted from Tom's other projects:
@@ -146,6 +155,20 @@ The Mermaid diagram from Plan 3 Section 1 needs exporting to PNG for the README 
 4. Save to `docs/architecture-diagram.png`
 5. Reference in README as `![Architecture](docs/architecture-diagram.png)`
 6. Also save the raw Mermaid source to `docs/architecture-diagram.mmd` for future edits
+
+---
+
+## 2b. Design screenshots (stretch dashboard)
+
+The interactive prototype exports to 17 reference PNGs at `design/design_handoff_isq_agent/designs/prototype-hybrid/pngs/` (10 screens + 7 wireframes). These are kept **out of git** by choice (per Tom's no-binary-blobs preference) — deliver them to the README without committing binaries:
+
+### Steps
+
+1. Lead shots: `01-landing`, `05-results-answer-expanded` (flagged answer + confidence breakdown), and `wireframe-06-userflow` (architecture in one frame).
+2. Upload them to a GitHub issue, PR, or the v1.0.0 release; GitHub returns a CDN URL (`github.com/<owner>/<repo>/assets/...`).
+3. Paste those URLs into the README "Design (stretch)" section, replacing the `LANDING_SCREENSHOT_URL` / `RESULTS_SCREENSHOT_URL` placeholders. The images render on github.com but never enter the git tree.
+
+Note: the dashboard itself is unbuilt; its data-contract reconciliation (nested-vs-flat confidence, citation `source_id`↔`{source,page}`, the run envelope) is captured in `plans/design-decision-locked.md` for whoever builds it — **not** a v1 task.
 
 ---
 
@@ -244,6 +267,7 @@ Before submission, run through every item:
 - [ ] **docs/walkthrough-script.md** — script committed (from Plan 10)
 - [ ] **plans/** — all 11 plans committed (including this one)
 - [ ] **plans/prompts/** — all per-plan companion prompts committed (including backfills for 4-7)
+- [ ] **Design story** — README "Design (stretch)" section added; landing + results-expanded screenshots delivered via GitHub asset URLs (uploaded to an issue/release, referenced by CDN URL — NOT committed as binaries); `design/design_handoff_isq_agent/` link verified
 - [ ] **CI** — green on main, badge in README working
 - [ ] **Tests** — all green, coverage acceptable
 - [ ] **Tag v1.0.0** — `git tag -a v1.0.0 -m "v1.0.0 — submitted to RiverAI"` + push
