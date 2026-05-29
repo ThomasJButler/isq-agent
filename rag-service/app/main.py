@@ -4,6 +4,7 @@ Handles route registration, CORS for n8n, lifecycle setup, structured logging.
 """
 
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 
@@ -48,10 +49,18 @@ app = FastAPI(
 )
 
 
-# CORS — allow n8n container and localhost dev to call us
+def _allowed_origins() -> list[str]:
+    """CORS origins from the ALLOWED_ORIGINS env (comma-separated), else the local
+    n8n + dev defaults. A deployed frontend (e.g. the Vercel dashboard) is allowed by
+    setting ALLOWED_ORIGINS on the host, with no code change."""
+    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:5678,http://n8n:5678")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+# CORS: n8n + localhost by default; ALLOWED_ORIGINS env adds deployed frontends
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5678", "http://n8n:5678"],
+    allow_origins=_allowed_origins(),
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
     allow_credentials=True,
