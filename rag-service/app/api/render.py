@@ -11,7 +11,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
@@ -37,6 +37,7 @@ _FORMATS = {
 
 @router.post("/render")
 async def render(
+    request: Request,
     fmt: str = Form(..., alias="format"),
     envelope: str = Form(...),
     source: UploadFile | None = File(None),
@@ -70,11 +71,17 @@ async def render(
                 fh.write(await source.read())
         render_xlsx(canonical, str(out_path), source_path)
 
+    # Echo an inbound X-Request-Id so n8n can correlate this render with the rest of the run
+    # (same convention as /answer, /extract-questions, /process-questionnaire).
+    request_id = request.headers.get("x-request-id")
+    headers = {"X-Request-Id": request_id} if request_id else None
+
     # FileResponse streams the file after the handler returns, so the temp dir can only be
-    # removed once the response has been sent — hence a background task, not an inline rmtree.
+    # removed once the response has been sent: a background task, not an inline rmtree.
     return FileResponse(
         path=str(out_path),
         media_type=media_type,
         filename=filename,
+        headers=headers,
         background=BackgroundTask(shutil.rmtree, tmp_dir, ignore_errors=True),
     )

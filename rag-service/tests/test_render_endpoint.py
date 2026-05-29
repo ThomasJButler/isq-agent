@@ -173,3 +173,14 @@ def test_render_cleans_up_tempdir(monkeypatch):
     assert created, "expected the endpoint to create a temp directory"
     for path in created:
         assert not os.path.exists(path), f"temp directory leaked: {path}"
+
+
+def test_render_echoes_request_id():
+    """/render echoes an inbound X-Request-Id so n8n can correlate the call (like /answer)."""
+    resp = client.post(
+        "/render",
+        data={"format": "json", "envelope": json.dumps(_envelope())},
+        headers={"X-Request-Id": "isq-run-99"},
+    )
+    assert resp.status_code == 200
+    assert resp.headers.get("x-request-id") == "isq-run-99"
