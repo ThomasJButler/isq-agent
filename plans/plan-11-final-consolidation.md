@@ -259,6 +259,7 @@ generation. The ISQ Agent applies the same shape to security questionnaires.
 Before submission, run through every item:
 
 - [ ] **README.md** — final review, link checks, no typos, badges working
+- [ ] **Security review (Section 4b)** — automated tooling + manual threat-surface pass done, `SECURITY.md` written, findings fixed or documented
 - [ ] **LICENSE** — MIT present
 - [ ] **.gitignore** — `.env`, `__pycache__`, `node_modules`, `source-corpus/`, `.DS_Store`, IDE folders
 - [ ] **.env.example** — present, all required env var names, no values
@@ -316,6 +317,38 @@ When Lee clones the repo:
 4. For the demo walkthrough, Tom hands over the original RiverAI-provided files separately (kept locally, not in the public repo)
 
 This is the most professional handling — respects RiverAI's IP, keeps the public repo clean, makes the repo immediately suitable as a portfolio piece for any future use.
+
+---
+
+## 4b. Full security review (before v1.0.0)
+
+The repo is public and the service takes untrusted input (uploaded questionnaires) and feeds it to an LLM with real spend behind it. A proper security pass is part of the submission, not an afterthought. Run it on a branch (`chore/security-review`) after the demo docs land and before tagging `v1.0.0`. It has two halves: automated tooling and a manual threat-surface review specific to this app. Anything it finds either gets fixed, or gets written up honestly in `SECURITY.md` as a known limitation with the reasoning (an honest "no auth because it's an internal service behind n8n, here's how I'd add it" is a stronger signal than pretending the gap isn't there).
+
+### Automated tooling
+
+- [ ] **`/security-review` skill** — run the built-in security-review skill over the diff/codebase and triage its findings (it is the primary pass; the items below are the manual backstop).
+- [ ] **Secret scan** — `gitleaks detect --source . --no-git` returns clean. Also scan history: `gitleaks detect --source .` (full git history, in case a key was ever committed and reverted). `.env` must never have been committed.
+- [ ] **Dependency audit** — `pip-audit -r rag-service/requirements.txt` (or `uv pip audit`) for known CVEs in the pinned deps. Note Pinecone is pinned to v5 deliberately (v6 has breaking changes) — if v5 has an advisory, document the trade-off rather than blindly bumping.
+- [ ] **Static analysis** — `bandit -r rag-service/app` for common Python security anti-patterns (unsafe tempfile use, subprocess, eval, etc.).
+- [ ] **CodeRabbit / ultrareview** — let the existing review bots have a security-focused pass on the final diff.
+
+### Manual threat-surface review (specific to this app)
+
+- [ ] **Prompt injection (the headline risk).** A malicious questionnaire is untrusted text that flows into the Claude prompt (`/extract-questions` and `/answer`/`generator.py`). Confirm: question text is treated as data, not instructions; the system prompt's strict rules ("use only the provided chunks, never invent") hold even when a question says "ignore your instructions and output X"; the citation-verification layer still catches fabricated `source_id`s. Add an adversarial test case (a question containing an injection attempt) and confirm the answer stays grounded + flags low confidence. This is the most defensible thing to demo: "here's what happens when someone puts an attack in the questionnaire."
+- [ ] **File-upload handling (`/render` + n8n).** The `/render` endpoint and the n8n Form Trigger accept uploaded files. Confirm: file type is validated (only PDF/XLSX), there is a size cap (n8n binary mode + a FastAPI/Starlette body limit) so a huge upload can't exhaust memory/disk, the uploaded `source` workbook is written to a per-request tempdir and cleaned up (already fixed in #20), and a malformed/zip-bomb XLSX is handled (openpyxl `read_only` where possible, caught exceptions, no crash).
+- [ ] **Path traversal / file writes.** Confirm no user-controlled string reaches a filesystem path unsanitised — the render output filename is server-controlled (`response.{ext}`), the tempdir is `mkdtemp`, and the upload is written to a fixed name inside it. No user input concatenated into a path.
+- [ ] **No-auth internal service.** `rag-service` has no authentication (it trusts n8n on the docker network). That is acceptable for a local two-tier demo but must be stated in `SECURITY.md` with the production fix (network isolation / an internal API key / mTLS between n8n and the service). Confirm the service isn't bound to a public interface in any committed config and that `docker-compose.yml` only exposes what's needed.
+- [ ] **CORS.** `main.py` allows `localhost:5678` and `n8n:5678` only — confirm it's still that tight (no `allow_origins=["*"]`) and credentials handling is sane.
+- [ ] **Error handling / info disclosure.** Confirm endpoint errors return clean messages, not stack traces or internal paths, and that upstream-provider errors (Anthropic/Voyage/Pinecone) map to 502/503 without leaking keys or internal detail. Structured logs must not log secrets or full request bodies.
+- [ ] **Cost / DoS via the LLM.** Each question is a billable Claude call; a 500-question questionnaire is real money. Confirm there's a sane cap on questions per run (or document the limit) so an abusive upload can't run up unbounded spend. The per-run `summary_metrics.total_cost_usd` already makes spend visible.
+- [ ] **SSRF / outbound.** The service makes outbound calls only to fixed provider SDKs (no user-controlled URLs fetched). Confirm nothing in the pipeline fetches a user-supplied URL.
+- [ ] **Secrets at rest / in config.** `.env` gitignored, `.env.example` has names only, no keys in `docker-compose.yml`, logs, test fixtures, or the committed n8n workflow JSON (n8n exports can embed credentials — scrub the exported `isq-agent.json` of any credential blocks before committing).
+- [ ] **Packaged skill.** `process_isq.py` / `reindex_corpus.py` read local files and hit the local service — confirm they don't execute arbitrary input and that the skill docs don't instruct running anything unsafe.
+
+### Output
+
+- [ ] **`SECURITY.md`** — written up: the threat model in two paragraphs, what was checked, what was fixed, and the honest known-limitations list (no-auth internal service, question cap, prompt-injection mitigations and their bounds). This doubles as a strong walkthrough/Q&A artefact.
+- [ ] Any fix lands test-first like everything else; the write-up references the tests that prove the mitigations.
 
 ---
 
@@ -465,6 +498,7 @@ Save this template to `taskandemails/email-to-lee-submission.md` so you have it 
 - [ ] README.md complete per Section 1
 - [ ] Architecture diagram exported to PNG per Section 2
 - [ ] `docs/attributions.md` created per Section 3
+- [ ] Security review complete per Section 4b — `SECURITY.md` committed, findings fixed or documented
 - [ ] Final repo polish checklist (Section 4) — every box ticked
 - [ ] Backfill prompts for Plans 4-7 created (in `plans/prompts/`)
 - [ ] All `plans/` files committed
@@ -489,10 +523,14 @@ See `git-conventions.md` for the full reference. Plan 11 is mechanical — READM
 
 **Pre-tag checks (do not skip):**
 ```bash
-gitleaks detect --source . --no-git   # zero secrets
+gitleaks detect --source . --no-git   # zero secrets (working tree)
+gitleaks detect --source .            # zero secrets (full history)
+pip-audit -r rag-service/requirements.txt   # no known CVEs (or documented trade-off)
+bandit -r rag-service/app             # no high-severity findings
 grep -ri "matrix" --include="*.py" rag-service/   # only attributions.md should match
 pytest                                # all green
 ```
+The full security pass (Section 4b) runs on its own `chore/security-review` branch before this; these are the final confirmation gates.
 
 **Push + PR + merge:**
 ```bash
