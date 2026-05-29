@@ -618,4 +618,67 @@
     height: auto;
     border: 0;
   }
+
+  /* —— Cards — `card` base + paper / lift modifiers, two padding scales —— */
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-lg);
+  }
+  .card-paper {
+    background: var(--bg-0);
+    border: 1px solid var(--border-1);
+    border-radius: var(--radius-lg);
+  }
+  .card-lift {
+    background: var(--bg-0);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 0;
+  }
+  .card-pad {
+    padding: var(--space-6);
+  }
+  .card-pad-lg {
+    padding: var(--space-8);
+  }
+
+  /* —— Confidence bar — the tone band sets the fill colour (success/warning/danger) —— */
+  .conf {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--fs-caption);
+    font-family: var(--font-mono);
+    color: var(--fg-3);
+  }
+  .conf-bar {
+    width: 64px;
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+    position: relative;
+  }
+  .conf-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 400ms var(--ease);
+  }
+  .conf-high > span {
+    background: var(--success);
+  }
+  .conf-mid > span {
+    background: var(--warning);
+  }
+  .conf-low > span {
+    background: var(--danger);
+  }
+
+  /* Muted meta text — the expanded confidence bar's "confidence" label leans on
+     this (as will the Stat / Footer / Dropzone meta rows in later slices). */
+  .muted {
+    color: var(--fg-3);
+  }
 }
