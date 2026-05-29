@@ -23,6 +23,7 @@ from anthropic import Anthropic
 
 from app.core.config import settings
 from app.core.llm import create_message
+from app.core.pricing import rates_for
 from app.core.isq_prompts import (
     EXTRACT_QUESTIONS_TOOL,
     EXTRACTION_SYSTEM_PROMPT,
@@ -70,11 +71,6 @@ class QuestionExtractor:
     # A large questionnaire (100+ questions) is a sizeable structured output;
     # leave generous headroom so the tool result is never truncated.
     MAX_TOKENS = 8192
-    # claude-sonnet-4-5 list pricing, USD per million tokens. Valid only for that
-    # model — cost_usd would be wrong if a different model were injected, so update
-    # these alongside any model change (the model is fixed by CLAUDE.md today).
-    COST_PER_MTOK_IN = 3.0
-    COST_PER_MTOK_OUT = 15.0
 
     def __init__(self, api_key: str | None = None, model: str | None = None):
         """
@@ -84,6 +80,9 @@ class QuestionExtractor:
         """
         self.model = model or settings.anthropic_model
         self.client = Anthropic(api_key=api_key or settings.anthropic_api_key)
+        # Token rates track the configured model, so cost_usd is correct whichever
+        # model runs, not pinned to one model's prices (app.core.pricing).
+        self.cost_per_mtok_in, self.cost_per_mtok_out = rates_for(self.model)
 
     def extract(self, source_text: str, filename: str) -> dict:
         """
@@ -145,8 +144,8 @@ class QuestionExtractor:
     def _result(self, questions, warnings, tokens_in, tokens_out, latency_ms) -> dict:
         """Assemble the response payload, including cost/latency metrics."""
         cost_usd = (
-            tokens_in / 1_000_000 * self.COST_PER_MTOK_IN
-            + tokens_out / 1_000_000 * self.COST_PER_MTOK_OUT
+            tokens_in / 1_000_000 * self.cost_per_mtok_in
+            + tokens_out / 1_000_000 * self.cost_per_mtok_out
         )
         return {
             "questions": questions,
