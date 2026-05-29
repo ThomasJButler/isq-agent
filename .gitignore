@@ -6,7 +6,7 @@
 *.key
 
 # ---------- Source corpus (RiverAI's assessment material) ----------
-source-corpus/
+source-corpus/*
 !source-corpus/README.md
 
 # ---------- Python ----------
