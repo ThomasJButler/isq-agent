@@ -1,0 +1,10 @@
+# Keep the build context small + the image clean. Only requirements.txt + app/
+# are needed to run the service.
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+tests
+scripts
+.python-version
