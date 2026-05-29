@@ -20,6 +20,7 @@ import {
   WarningIcon,
 } from "@/components/icons";
 import { toRunViewModel } from "@/lib/adapter";
+import { downloadRender, type RenderFormat } from "@/lib/download";
 import { formatConfidence, formatCurrency, formatDuration } from "@/lib/format";
 import { MOCK_ENVELOPE } from "@/lib/mock";
 import type { RunViewModel } from "@/lib/types";
@@ -304,12 +305,21 @@ export default function ResultsPage(): JSX.Element {
   }
 
   function copyLink() {
-    // The run URL is genuinely shareable, so this one is real (not a stub). The
-    // download buttons below have no file to serve yet — that's the §8 glue.
+    // The run URL is shareable, so this one is real. The download buttons below
+    // POST the canonical envelope to /render (see lib/download).
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href).catch(() => {});
     }
     showToast("Run link copied");
+  }
+
+  async function handleDownload(format: RenderFormat) {
+    showToast(`Preparing ${format.toUpperCase()}…`);
+    try {
+      await downloadRender(format, MOCK_ENVELOPE);
+    } catch {
+      showToast("Download failed. Is the backend reachable?");
+    }
   }
 
   const { meta, summary } = MODEL;
@@ -385,21 +395,21 @@ export default function ResultsPage(): JSX.Element {
               <Button
                 variant="primary"
                 leadingIcon={<FileDocxIcon size={14} />}
-                onClick={() => showToast("Preparing DOCX…")}
+                onClick={() => handleDownload("docx")}
               >
                 Download DOCX
               </Button>
               <Button
                 variant="secondary"
                 leadingIcon={<FileXlsxIcon size={14} />}
-                onClick={() => showToast("Preparing XLSX…")}
+                onClick={() => handleDownload("xlsx")}
               >
                 Download XLSX
               </Button>
               <Button
                 variant="secondary"
                 leadingIcon={<FileJsonIcon size={14} />}
-                onClick={() => showToast("Preparing JSON…")}
+                onClick={() => handleDownload("json")}
               >
                 Download JSON
               </Button>
