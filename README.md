@@ -145,15 +145,15 @@ a review reason (for example a scope mismatch). The weights and thresholds live 
 [`rag-service/app/confidence/aggregator.py`](rag-service/app/confidence/aggregator.py) so the
 bias is auditable.
 
-## Design (stretch)
+## Dashboard
 
-A thin Next.js dashboard was designed but not built for v1, so the functional path runs through
-the FastAPI service and the packaged skill. Three visual iterations were produced; the lead is
-the "Claude × RiverAI Hybrid": a Claude warm-paper foundation with RiverAI black-pill CTAs, a
-blue interactive accent, and a single "Powered by Claude" badge. The full handoff (design
-tokens, components, five screens, interactive prototype) is in
-[`design/design_handoff_isq_agent/`](design/design_handoff_isq_agent/). The built dashboard and
-its screenshots land in a follow-up pass.
+A Next.js dashboard ships in [`frontend/`](frontend/), deployed at
+https://isq-agent-xyz.vercel.app/ (running on demo data for now; wiring it to the live backend is
+the v1.1 step). Three visual iterations were produced; the lead is the "Claude × RiverAI Hybrid":
+a Claude warm-paper foundation with RiverAI black-pill CTAs, a blue interactive accent, and a
+single "Powered by Claude" badge. The full design handoff (tokens, components, five screens,
+interactive prototype) is in
+[`design/design_handoff_isq_agent/`](design/design_handoff_isq_agent/).
 
 ## Reused components
 
