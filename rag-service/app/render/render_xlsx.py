@@ -5,7 +5,7 @@ Unlike the typeset DOCX renderer, this OVERLAYS the canonical answers onto a cop
 the original questionnaire: it opens the source workbook, finds the Response column,
 and writes each answer into the matching row. Flagged answers get a yellow fill + a
 [REVIEW] prefix so a reviewer spots them at a glance. A second "Summary" sheet carries
-the run summary (and the all-flagged banner when every answer is flagged).
+the run summary (and a run-level banner when every answer is flagged or every one failed).
 
 Overlay needs the original file, so render_xlsx takes a third arg (source_path) the
 typeset renderers don't. Answers map to data rows by position — both are 1-based
@@ -18,6 +18,8 @@ from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.render.shared import (
+    ALL_FAILED_BODY,
+    ALL_FAILED_HEADLINE,
     ALL_FLAGGED_BODY,
     ALL_FLAGGED_HEADLINE,
     format_currency,
@@ -98,9 +100,16 @@ def _add_summary_sheet(workbook, meta: dict, summary: dict) -> None:
     sheet = workbook.create_sheet("Summary")
     row = 1
 
-    if summary.get("banner") == "all_flagged":
-        sheet.cell(row=row, column=1, value=ALL_FLAGGED_HEADLINE).fill = _FLAGGED_FILL
-        sheet.cell(row=row + 1, column=1, value=ALL_FLAGGED_BODY)
+    banner = summary.get("banner")
+    if banner == "all_flagged":
+        headline, body = ALL_FLAGGED_HEADLINE, ALL_FLAGGED_BODY
+    elif banner == "all_failed":
+        headline, body = ALL_FAILED_HEADLINE, ALL_FAILED_BODY
+    else:
+        headline = body = None
+    if headline:
+        sheet.cell(row=row, column=1, value=headline).fill = _FLAGGED_FILL
+        sheet.cell(row=row + 1, column=1, value=body)
         row += 3
 
     pairs = [

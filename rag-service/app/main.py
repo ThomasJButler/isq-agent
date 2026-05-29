@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import answer, extract, health, index
+from app.api import answer, extract, health, index, process
 from app.core.config import settings
 
 
@@ -63,6 +63,7 @@ app.include_router(health.router, tags=["health"])
 app.include_router(answer.router, tags=["answer"])
 app.include_router(index.router, tags=["index"])
 app.include_router(extract.router, tags=["extraction"])
+app.include_router(process.router, tags=["processing"])
 
 
 @app.get("/")
