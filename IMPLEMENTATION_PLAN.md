@@ -16,7 +16,7 @@
 
 ## Active phase
 
-Phase B — Glue logic (TDD-first). Phase A (Foundation) is complete: Slice 1 (scaffold) + Slice 2 (design tokens + fonts) both done.
+Phase C — Primitives (render + behaviour tests via RTL). Phase A (Foundation) and Phase B (Glue logic) are both complete: Slices 1–2 (scaffold + design tokens/fonts) and Slices 3–5 (adapter + formatters + upload validation) all done.
 
 ## Ordered checklist
 
@@ -27,7 +27,7 @@ Phase B — Glue logic (TDD-first). Phase A (Foundation) is complete: Slice 1 (s
 ### Phase B — Glue logic (TDD-first)
 - [x] **Slice 3 — Data adapter.** `lib/types.ts` + `lib/adapter.ts` with `toRunViewModel(canonical)` per plan-12 §5. Tests FIRST (Vitest): fixture envelope → expected view model; every rename; flagged answer surfaces `needs_review` + reason; `confidence: null` → flagged, no score, excluded from averages; `banner` "all_failed" and "all_flagged" both surface; empty `answers: []`. Commit test, then impl. **Done** — see Notes below.
 - [x] **Slice 4 — Formatters.** `lib/format.ts`: `formatCurrency`, `formatDuration`, `formatConfidence`. Tests FIRST. Commit test, then impl. **Done** — see Notes below.
-- [ ] **Slice 5 — Upload validation.** `lib/validate.ts`: accept `.pdf`/`.xlsx`, reject other types and >10 MB, with clear messages. Tests FIRST. Commit test, then impl.
+- [x] **Slice 5 — Upload validation.** `lib/validate.ts`: accept `.pdf`/`.xlsx`, reject other types and >10 MB, with clear messages. Tests FIRST. Commit test, then impl. **Done** — see Notes below.
 
 ### Phase C — Primitives (render + behaviour tests via RTL)
 - [ ] **Slice 6 — Wordmark + TopBar** ("Agent" in river-blue + sparkle; nav + repo link).
@@ -96,6 +96,15 @@ Phase B — Glue logic (TDD-first). Phase A (Foundation) is complete: Slice 1 (s
 - **Validated:** `npm test` (31 pass across 4 files — 21 prior + 10 new), `npm run lint` (clean), `npm run format:check` (clean), `npm run build` (compiled, TypeScript passed, 4/4 static pages).
 - **Hook note:** the worktree's pre-commit runs `pytest (rag-service)` + a `matrix-strip leakage guard` (and `ruff format`); all **Skipped** here (no matching files), but the matrix-strip guard will be live once Phase C/D UI files land — keep zero Matrix theming.
 
+### Slice 5 (upload validation) — decisions + discoveries
+
+- **Anchored to the prototype's `Dropzone.accept`** (`design/.../prototype-hybrid/components.jsx:177-183`), not the plan's guesses. Pinned exactly: check **TYPE first, then SIZE**; ceiling is `10 * 1024 * 1024` (10 MiB, binary — `fmtBytes` divides by 1024² and labels "MB") with a strict `>` so **exactly 10 MiB passes** and one byte over fails; messages are verbatim — type → `"We couldn't read this file. Try a PDF or XLSX."`, size → `"File is over 10 MB. Try a smaller file."` (both already Tom's voice: direct, contraction, no banned words, no em dash).
+- **API shape (a design call — §7 only said "with messages"):** `validateUpload(file)` returns a discriminated union `{ ok: true } | { ok: false; reason: "type" | "size"; message: string }` rather than throwing — a rejected upload is an expected outcome the UI renders, so the component branches on `ok` with full type-narrowing and no try/catch. `reason` lets the Dropzone style/label by failure mode without re-parsing the message.
+- **Param type `UploadFile = Pick<File, "name" | "size">`.** A real browser `File` satisfies it, but tests pass a light `{ name, size }` stand-in so the 10 MB boundary case allocates nothing. The validator only ever needs those two fields.
+- **Copy + limits exported as constants** (`ACCEPTED_EXTENSIONS`, `MAX_UPLOAD_BYTES`, `TYPE_ERROR_MESSAGE`, `SIZE_ERROR_MESSAGE`) so the Slice 9 Dropzone can drive its `accept` attribute, helper text, and error copy from this single source of truth instead of re-typing strings that could drift. Extension match is `ACCEPTED_EXTENSIONS.some(ext => name.toLowerCase().endsWith(ext))` — equivalent to the prototype's `/\.(pdf|xlsx)$/i` for these extensions (case-insensitive, end-anchored: `report.PDF` passes, `malware.pdf.exe` is rejected) but derived from the constant list so the accept attribute and the check can't diverge.
+- **TDD observed:** wrote `frontend/__tests__/validate.test.ts` first, ran `npm test -- validate`, watched it fail with `Failed to resolve import "@/lib/validate"` (module-not-found red, `no tests` collected), then implemented to green.
+- **Validated:** `npm test` (42 pass across 5 files — 31 prior + 11 new), `npm run lint` (clean), `npm run format:check` (clean), `npm run build` (compiled, TypeScript passed in 3.0s, 4/4 static pages). Pre-commit pytest/matrix-strip/ruff hooks all Skipped (no matching files); the matrix-strip guard goes live once Phase C UI files land.
+
 ## Next recommended build slice
 
-**Slice 5 — Upload validation (TDD-first).** `lib/validate.ts`: accept `.pdf`/`.xlsx`, reject other types and files >10 MB, each with a clear, Tom's-voice message (direct, contractions; no "genuinely"/"leverage"/"cutting-edge"/em dashes). Write the Vitest tests FIRST: a valid `.pdf` and a valid `.xlsx` pass; a `.docx`/`.png`/other extension is rejected with a type message; a file at exactly 10 MB passes and one over 10 MB is rejected with a size message; confirm the boundary (the prototype's `Dropzone` already advertises `accept=".pdf,.xlsx"` and has a `fmtBytes` helper — check `components.jsx` for the exact size phrasing/limit before pinning it). Watch them fail, then implement. Commit the test, then the implementation (separate commits — pure logic). This feeds the `/upload` Dropzone (Slice 9 / Slice 14).
+**Slice 6 — Wordmark + TopBar (Phase C, first UI primitive).** This starts Phase C, so the discipline shifts from pure-logic unit tests to **render + key-behaviour tests via React Testing Library** (per `frontend/CLAUDE.md`: components get a render + one behaviour test). Build the Wordmark ("ISQ" in ink + **"Agent" in river-blue #2A7BE2** + a sparkle) and the TopBar (nav + repo link). Pull the exact markup/structure from the prototype's `components.jsx` (find the wordmark + topbar components) and the design tokens already in `globals.css`. Watch the sparkle: §9/Slice 17 flags the clip-path sparkle for replacement with an inline SVG — prefer an inline SVG from the start to avoid rework. Enforce the design rules: river-blue (not orange) on "Agent", zero Matrix theming, focus rings 2px river-blue (never bare `outline:none`). Write the RTL test FIRST (renders the wordmark text, "Agent" carries the accent class/colour, repo link points at the right href and is keyboard-reachable), watch it fail, then implement. Commit test, then implementation (separate commits). **Note:** the matrix-strip leakage pre-commit guard becomes active for this slice's `.tsx`/`.css` files — keep it clean.
