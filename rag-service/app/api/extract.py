@@ -23,6 +23,8 @@ from anthropic import (
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.extraction.extractor import QuestionExtractor, flatten_xlsx_to_text
 
 router = APIRouter()
@@ -67,6 +69,7 @@ class ExtractResponse(BaseModel):
 
 
 @router.post("/extract-questions", response_model=ExtractResponse)
+@limiter.limit(lambda: settings.rate_limit_default)
 def extract_questions(
     payload: ExtractRequest, request: Request, response: Response
 ) -> dict[str, Any]:

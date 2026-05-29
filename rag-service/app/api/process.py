@@ -23,11 +23,13 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from app.confidence.aggregator import aggregate_confidence
 from app.confidence.summary import ISQSummary, summarise
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
 
@@ -160,6 +162,7 @@ def _to_summary_metrics(summary: ISQSummary) -> dict[str, Any]:
 
 
 @router.post("/process-questionnaire", response_model=ProcessResponse)
+@limiter.limit(lambda: settings.rate_limit_heavy)
 def process_questionnaire(
     payload: ProcessRequest, request: Request, response: Response
 ) -> dict[str, Any]:
@@ -167,6 +170,17 @@ def process_questionnaire(
     request_id = request.headers.get("x-request-id")
     if request_id:
         response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
+
+    # Cost guard: cap the number of questions before any retrieval/generation, so a
+    # huge questionnaire can't fan out into thousands of LLM calls (v1.1).
+    if len(payload.questions) > settings.max_questions:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Too many questions ({len(payload.questions)}); the limit is "
+                f"{settings.max_questions}. Split the questionnaire and retry."
+            ),
+        )
 
     total = len(payload.questions)
     answers = [

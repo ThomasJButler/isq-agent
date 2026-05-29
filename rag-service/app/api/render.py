@@ -15,6 +15,8 @@ from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.render.render_docx import render_docx
 from app.render.render_json import render_json
 from app.render.render_xlsx import render_xlsx
@@ -36,6 +38,7 @@ _FORMATS = {
 
 
 @router.post("/render")
+@limiter.limit(lambda: settings.rate_limit_default)
 async def render(
     request: Request,
     fmt: str = Form(..., alias="format"),
@@ -54,6 +57,15 @@ async def render(
         raise HTTPException(
             status_code=400, detail=f"Malformed envelope JSON: {exc}"
         ) from exc
+
+    # Cost/abuse guard: reject an oversized source workbook before reading it (v1.1).
+    if source is not None and source.size is not None:
+        max_bytes = settings.max_upload_mb * 1024 * 1024
+        if source.size > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Source file too large; the limit is {settings.max_upload_mb} MB.",
+            )
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="isq-render-"))
     filename, media_type = _FORMATS[fmt]
