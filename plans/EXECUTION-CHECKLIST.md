@@ -31,7 +31,7 @@ Email to Lee can wait until Tuesday morning (Lee won't see it tonight anyway).
 - [x] **10:15** — Initialise repo: `mkdir ~/Repos/isq-agent && cd ~/Repos/isq-agent && git init`
 - [x] **10:20** — Copy planning artefacts:
   ```bash
-  cp -r ~/Repos/RiverAICodeAssesmentPlan/plans ~/Repos/isq-agent/plans
+  cp -r <planning-repo>/plans ~/Repos/isq-agent/plans
   ```
 - [x] **10:25** — Create `.gitignore`, `LICENSE` (MIT, copy from Morpheus), `.env.example`. **Do not commit** `source-corpus/` (gitignored per Audit 3 decision).
 - [X] **10:35** — Save all API keys to `.env` (local, not committed): `VOYAGE_API_KEY`, `ANTHROPIC_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX=isq-agent-knowledge`

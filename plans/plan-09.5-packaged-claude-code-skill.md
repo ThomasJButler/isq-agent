@@ -305,7 +305,7 @@ claude skill install ./isq-agent.skill
 
 In that chat:
 ```
-> "process the file at /Users/tombutler/Repos/isq-agent/source-corpus/Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf"
+> "process the file at ~/Repos/isq-agent/source-corpus/Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf"
 ```
 
 The skill should trigger (you'll see `<command-message>The "isq-agent" skill is loading</command-message>`), run process_isq.py, and return the results.

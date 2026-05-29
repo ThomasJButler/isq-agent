@@ -10,7 +10,7 @@ You're helping me build **Plan 9 — Output Rendering Strategy (TDD-first)** of 
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-09-output-rendering.md** (the plan you're executing)
 - **plan-08-confidence-and-flagging.md** (the `needs_review` flag we render)
 - **plan-01-initial-sketch.md** Section 7a (locked visual style) + Section 7d (working-style commitments)

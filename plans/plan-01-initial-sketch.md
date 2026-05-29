@@ -402,7 +402,7 @@ All 8 original open questions are now resolved. See "Final Decisions Locked" tab
 
 | # | Question | Notes |
 |---|---|---|
-| 9 | Repo on-disk location | `/Users/tombutler/Repos/isq-agent` recommended. Top-level so it's easy to share with Lee. |
+| 9 | Repo on-disk location | `~/Repos/isq-agent` recommended. Top-level so it's easy to share with Lee. |
 | 10 | GitHub repo visibility | Public recommended (portfolio piece, you may reference later). Private fine if you prefer. |
 | 11 | How to share submission with Lee/Gav | Email Lee asking: "Public GitHub URL OK, or do you want a private repo with invites?" Worth asking this week before submission day. |
 | 12 | Email trigger upgrade | Brief lists email as input option. n8n IMAP/Gmail trigger is ~20 min. **Recommend promoting from stretch to must-have.** Shows you read the brief and met more of its input options than the minimum. |

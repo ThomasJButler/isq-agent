@@ -1,6 +1,6 @@
 # Handoff Prompt — Continue ISQ Agent from Plan 8
 
-**Purpose:** Copy-paste everything below the `---` into a fresh Claude Code chat (opened in `/Users/tombutler/Repos/isq-agent`) to continue the project from Plan 8 without re-explaining context. Supersedes the earlier `plans/handoff-prompt-plan-06-onwards.md` (which was written at Plan 6).
+**Purpose:** Copy-paste everything below the `---` into a fresh Claude Code chat (opened in `~/Repos/isq-agent`) to continue the project from Plan 8 without re-explaining context. Supersedes the earlier `plans/handoff-prompt-plan-06-onwards.md` (which was written at Plan 6).
 
 **Snapshot when written:** 2026-05-29. Plans 1–7 complete and merged to `main`. Tag `v0.3.0`. CI green (112 tests). Next: Plan 8 (confidence scalar + flagging).
 
@@ -10,7 +10,7 @@
 
 # ISQ Agent — Implementation Brief (Plan 8 onward)
 
-You're continuing an in-progress AI engineering project for Tom Butler, in the repo at `/Users/tombutler/Repos/isq-agent` (Claude Code, working tree access). Planning is done; Plans 1–7 are built and merged. Your job: build Plan 8 onward, following the locked TDD + git discipline and Tom's working style.
+You're continuing an in-progress AI engineering project for Tom Butler, in the repo at `~/Repos/isq-agent` (Claude Code, working tree access). Planning is done; Plans 1–7 are built and merged. Your job: build Plan 8 onward, following the locked TDD + git discipline and Tom's working style.
 
 ## What you're building
 

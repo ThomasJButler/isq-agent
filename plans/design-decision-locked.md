@@ -2,7 +2,7 @@
 
 **Date locked:** 2026-05-26 (early Tuesday, post-Claude-Design overnight)
 **Selected:** Iteration 3 — "Claude × RiverAI Hybrid"
-**Location on disk:** `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/design/design_handoff_isq_agent/designs/prototype-hybrid/`
+**Location on disk:** `design/design_handoff_isq_agent/designs/prototype-hybrid/`
 
 ---
 

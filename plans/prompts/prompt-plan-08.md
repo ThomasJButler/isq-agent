@@ -10,7 +10,7 @@ You're helping me build **Plan 8 — Confidence + Flagging Strategy (TDD-first)*
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-08-confidence-and-flagging.md** (the plan you're executing)
 - **plan-07-answer-generation.md** (the `self_score` output we aggregate)
 - **plan-01-initial-sketch.md** Section 7d (working-style commitments) + decision table

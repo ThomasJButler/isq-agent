@@ -10,7 +10,7 @@ You're helping me close out the ISQ Agent project and submit it to RiverAI.
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-11-final-consolidation.md** (the plan you're executing)
 - **plan-01-initial-sketch.md** Sections 7b + 7c (the convergence stories the README needs to land)
 - **plan-10-demo-walkthrough.md** Section 1 (the walkthrough script — already in `docs/walkthrough-script.md`)

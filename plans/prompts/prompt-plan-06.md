@@ -10,7 +10,7 @@ You're helping me build **Plan 6 — Question Extraction Strategy (TDD-first)** 
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-06-question-extraction.md** (the plan you're executing)
 - **plan-04-knowledge-base-and-retrieval.md** (the test-first methodology you'll follow)
 - **plan-05-branching-and-git-workflow.md** (branching + Conventional Commits discipline)

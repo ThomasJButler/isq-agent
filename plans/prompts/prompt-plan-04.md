@@ -12,7 +12,7 @@ This is the first plan where TDD becomes paramount. Every component built from h
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-04-knowledge-base-and-retrieval.md** (the plan you're executing)
 - **plan-02-stack-lockin.md** (Morpheus lift protocol + Matrix-strip checklist)
 - **plan-03-architecture.md** Section 2 (the data flow this plan implements)
@@ -42,7 +42,7 @@ After chunking is green, repeat the same TDD cycle for:
 
 - Chunking: 500 char max, 50 overlap, RecursiveCharacterTextSplitter
 - Pinecone metadata schema (Plan 4 Section 4)
-- Vector ID convention: `{policy_short_code}-s{section}-c{chunk}` or `hist{N}-q{N}`
+- Vector ID convention: `{short_code}-p{page}-c{idx}` (PDF) / `{short_code}-c{idx}` (DOCX)
 - top_k = 5, min_score = 0.5
 - Source weighting: historical_isq × 0.95 (subtle preference for policies)
 - Stable IDs (so re-indexing replaces, doesn't duplicate)

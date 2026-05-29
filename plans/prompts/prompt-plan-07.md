@@ -12,7 +12,7 @@ You're helping me build **Plan 7 — Answer Generation Strategy (TDD-first)** of
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-07-answer-generation.md** (the plan you're executing)
 - **plan-04-knowledge-base-and-retrieval.md** (the retriever this generator consumes)
 - **plan-06-question-extraction.md** (the question shape this generator answers)
