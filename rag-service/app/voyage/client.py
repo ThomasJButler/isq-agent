@@ -3,9 +3,10 @@ Voyage AI embedding client wrapper.
 Wraps voyageai SDK for query + document embedding with cost tracking.
 """
 
-import os
 from typing import Optional
 import voyageai
+
+from app.core.config import settings
 
 
 class VoyageClient:
@@ -23,7 +24,7 @@ class VoyageClient:
 
     def __init__(self, model: str = "voyage-3-large", api_key: Optional[str] = None):
         self.model = model
-        self.client = voyageai.Client(api_key=api_key or os.getenv("VOYAGE_API_KEY"))
+        self.client = voyageai.Client(api_key=api_key or settings.voyage_api_key)
         self.tokens_used = 0  # cumulative across all calls
 
     def embed_query(self, text: str) -> list[float]:
