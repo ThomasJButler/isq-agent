@@ -72,3 +72,22 @@ describe("Slice 8 — orange stays off the card + confidence-bar CSS", () => {
     }
   });
 });
+
+describe("Slice 9 — orange stays off the dropzone, toast, skeleton + spinner CSS", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("keeps orange off every dropzone, toast, skeleton, and spinner rule", () => {
+    const surfaces = [
+      ".dropzone",
+      ".dropzone.dragging",
+      ".dropzone.error",
+      ".toast-wrap",
+      ".toast",
+      ".sk",
+      ".spinner",
+    ];
+    for (const selector of surfaces) {
+      expect(ruleBody(selector), `${selector} must not reference orange`).not.toMatch(ORANGE);
+    }
+  });
+});

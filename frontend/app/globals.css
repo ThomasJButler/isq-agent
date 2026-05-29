@@ -681,4 +681,97 @@
   .muted {
     color: var(--fg-3);
   }
+
+  /* —— Dropzone — dashed upload zone; river-blue dragging, danger error —— */
+  .dropzone {
+    border: 1.5px dashed var(--border-3);
+    border-radius: var(--radius-lg);
+    background: #ffffff;
+    padding: var(--space-16) var(--space-10);
+    text-align: center;
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease);
+    cursor: pointer;
+  }
+  .dropzone:hover {
+    border-color: var(--fg-4);
+    background: var(--bg-2);
+  }
+  .dropzone.dragging {
+    border-color: var(--river-blue);
+    border-style: solid;
+    background: var(--river-blue-tint);
+  }
+  .dropzone.error {
+    border-color: var(--danger);
+    border-style: solid;
+    background: rgba(181, 68, 58, 0.06);
+  }
+
+  /* —— Toast — dark ink pill (prototype Toast → tokens.css). .toast-wrap is the
+     fixed bottom-right stack a screen slice mounts; .toast is the pill itself. —— */
+  .toast-wrap {
+    position: fixed;
+    bottom: var(--space-6);
+    right: var(--space-6);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .toast {
+    background: var(--river-ink);
+    color: var(--cloud-light);
+    padding: 12px 18px;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-body-sm);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 260px;
+    animation: toast-in 200ms var(--ease-out);
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* —— Skeleton — shimmer placeholder (prototype Sk → tokens.css) —— */
+  .sk {
+    background: linear-gradient(90deg, var(--bg-3) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+    background-size: 200% 100%;
+    animation: sk-shimmer 1.4s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+  }
+  @keyframes sk-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* —— Spinner — small river-blue ring (no prototype original). The spin is
+     frozen by the global prefers-reduced-motion rule in @layer base. —— */
+  .spinner {
+    display: inline-block;
+    border: 2px solid var(--river-blue-tint);
+    border-top-color: var(--river-blue);
+    border-radius: 50%;
+    animation: spinner-rotate 0.6s linear infinite;
+  }
+  @keyframes spinner-rotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
