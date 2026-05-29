@@ -40,16 +40,23 @@ def _frontmatter(text):
     return match.group(1)
 
 
-def _mock_httpx(*, json_body=None, raises=None):
-    """A stand-in httpx module whose .get returns a canned response or raises."""
+def _mock_httpx(*, json_body=None, raises=None, status_error=None):
+    """A stand-in httpx module whose .get returns a canned response or raises.
+
+    raises: httpx.get itself raises (transport-level, i.e. unreachable).
+    status_error: httpx.get returns a response whose raise_for_status() raises
+        (the service is reachable but returned an HTTP error).
+    """
     httpx = Mock()
     if raises is not None:
         httpx.get = Mock(side_effect=raises)
-    else:
-        resp = Mock()
-        resp.raise_for_status = Mock()
-        resp.json = Mock(return_value=json_body)
-        httpx.get = Mock(return_value=resp)
+        return httpx
+    resp = Mock()
+    resp.raise_for_status = Mock(
+        side_effect=status_error
+    )  # no-op when status_error is None
+    resp.json = Mock(return_value=json_body)
+    httpx.get = Mock(return_value=resp)
     return httpx
 
 
@@ -127,6 +134,24 @@ def test_check_health_returns_1_when_unreachable(monkeypatch):
         ch, "httpx", _mock_httpx(raises=RuntimeError("connection refused"))
     )
     assert ch.main() == 1
+
+
+def test_check_health_returns_2_on_http_error(monkeypatch):
+    """Reachable but the service returned a 4xx/5xx → exit 2, not 1 (unreachable)."""
+    ch = _load_script("check_health.py")
+    monkeypatch.setattr(
+        ch, "httpx", _mock_httpx(status_error=RuntimeError("500 Server Error"))
+    )
+    assert ch.main() == 2
+
+
+def test_check_health_empty_dependencies_defer_to_status(monkeypatch):
+    """An empty dependencies dict is not vacuously healthy — fall back to status."""
+    ch = _load_script("check_health.py")
+    monkeypatch.setattr(
+        ch, "httpx", _mock_httpx(json_body={"status": "degraded", "dependencies": {}})
+    )
+    assert ch.main() == 2
 
 
 # process_isq.py
