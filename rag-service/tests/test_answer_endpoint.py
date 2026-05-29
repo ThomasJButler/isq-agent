@@ -194,3 +194,20 @@ def test_answer_endpoint_handles_retrieval_failure(
     response = client.post("/answer", json={"question": "Q?"})
 
     assert response.status_code == 503
+
+
+@patch("app.api.answer.AnswerGenerator")
+@patch("app.api.answer.Retriever")
+def test_answer_endpoint_handles_voyage_failure(mock_retriever, mock_generator, client):
+    """A Voyage embedding outage during retrieval maps to 503."""
+    import voyageai.error
+
+    _setup(
+        mock_retriever,
+        mock_generator,
+        retrieve_error=voyageai.error.VoyageError("voyage unavailable"),
+    )
+
+    response = client.post("/answer", json={"question": "Q?"})
+
+    assert response.status_code == 503

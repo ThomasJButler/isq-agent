@@ -7,6 +7,8 @@ obvious file to police. Keep this module free of any fictional-universe branding
 (the leakage-guard test enforces this in CI and pre-commit).
 """
 
+from typing import Any
+
 # Forced tool for question extraction. tool_choice pins this tool, so Claude must
 # return schema-valid JSON via tool_use — no free-text parsing, no malformed output.
 EXTRACT_QUESTIONS_TOOL = {
@@ -190,19 +192,20 @@ accepts this framing."
 }"""
 
 
-def format_chunks_for_prompt(chunks: list[dict]) -> str:
+def format_chunks_for_prompt(chunks: list[dict[str, Any]]) -> str:
     """
     Render retriever match dicts as a SOURCES block, policy chunks first.
 
     Each chunk becomes `[source_id|source_type|score=N.NN] text`. The retriever
     already sorts by weighted score; this groups policy ahead of historical_isq so
     the model sees the preferred sources first (rule 3), preserving score order
-    within each group.
+    within each group. A missing source_type falls back to "unknown" (never
+    "policy") so a non-policy chunk is never mislabelled as a policy source.
     """
     policy = [c for c in chunks if c["metadata"].get("source_type") == "policy"]
     other = [c for c in chunks if c["metadata"].get("source_type") != "policy"]
     lines = [
-        f"[{c['id']}|{c['metadata'].get('source_type', 'policy')}|"
+        f"[{c['id']}|{c['metadata'].get('source_type') or 'unknown'}|"
         f"score={c['score']:.2f}] {c['metadata'].get('text', '')}"
         for c in policy + other
     ]

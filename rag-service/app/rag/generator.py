@@ -15,6 +15,7 @@ prompt tokens.
 
 import logging
 import time
+from typing import Any
 
 from anthropic import Anthropic
 
@@ -49,6 +50,11 @@ class AnswerGenerator:
     # these alongside any model change (the model is fixed by CLAUDE.md today).
     COST_PER_MTOK_IN = 3.0
     COST_PER_MTOK_OUT = 15.0
+    # Prompt-cache multipliers on the base input rate (claude-sonnet-4-5): a cache
+    # write costs 1.25x, a cache read 0.1x. Without these, billing the cached system
+    # block at the full input rate would overstate cost on questions 2..N of an ISQ.
+    CACHE_WRITE_MULTIPLIER = 1.25
+    CACHE_READ_MULTIPLIER = 0.10
 
     def __init__(self, api_key: str | None = None, model: str | None = None):
         """
@@ -62,7 +68,7 @@ class AnswerGenerator:
     def generate(
         self,
         question: str,
-        chunks: list[dict],
+        chunks: list[dict[str, Any]],
         index: int | None = None,
         total: int | None = None,
     ) -> dict:
@@ -87,8 +93,8 @@ class AnswerGenerator:
                     "No source documents matched this question above the relevance "
                     "threshold. Recommend manual review and a possible policy-gap check."
                 ),
-                tokens_in=0,
-                tokens_out=0,
+                input_tokens=0,
+                output_tokens=0,
                 latency_ms=0.0,
             )
 
@@ -114,8 +120,11 @@ class AnswerGenerator:
         )
         latency_ms = (time.perf_counter() - start) * 1000
 
-        tokens_in = getattr(response.usage, "input_tokens", 0)
-        tokens_out = getattr(response.usage, "output_tokens", 0)
+        usage = response.usage
+        input_tokens = getattr(usage, "input_tokens", 0) or 0
+        output_tokens = getattr(usage, "output_tokens", 0) or 0
+        cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+        cache_creation = getattr(usage, "cache_creation_input_tokens", 0) or 0
 
         tool_block = next(
             (b for b in response.content if getattr(b, "type", None) == "tool_use"),
@@ -137,8 +146,10 @@ class AnswerGenerator:
                     "complete": 0.0,
                 },
                 needs_review_reason="Model did not return a structured answer; manual review needed.",
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cache_read=cache_read,
+                cache_creation=cache_creation,
                 latency_ms=latency_ms,
             )
 
@@ -165,8 +176,10 @@ class AnswerGenerator:
             citations=citations,
             self_score=self_score,
             needs_review_reason=raw.get("needs_review_reason"),
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cache_read=cache_read,
+            cache_creation=cache_creation,
             latency_ms=latency_ms,
         )
 
@@ -177,14 +190,24 @@ class AnswerGenerator:
         citations,
         self_score,
         needs_review_reason,
-        tokens_in,
-        tokens_out,
+        input_tokens,
+        output_tokens,
         latency_ms,
+        cache_read=0,
+        cache_creation=0,
     ) -> dict:
-        """Assemble the answer payload, including cost/latency metrics."""
+        """Assemble the answer payload, including cache-aware cost/latency metrics."""
         cost_usd = (
-            tokens_in / 1_000_000 * self.COST_PER_MTOK_IN
-            + tokens_out / 1_000_000 * self.COST_PER_MTOK_OUT
+            input_tokens / 1_000_000 * self.COST_PER_MTOK_IN
+            + cache_creation
+            / 1_000_000
+            * self.COST_PER_MTOK_IN
+            * self.CACHE_WRITE_MULTIPLIER
+            + cache_read
+            / 1_000_000
+            * self.COST_PER_MTOK_IN
+            * self.CACHE_READ_MULTIPLIER
+            + output_tokens / 1_000_000 * self.COST_PER_MTOK_OUT
         )
         return {
             "answer": answer,
@@ -192,8 +215,9 @@ class AnswerGenerator:
             "self_score": self_score,
             "needs_review_reason": needs_review_reason,
             "metrics": {
-                "tokens_in": tokens_in,
-                "tokens_out": tokens_out,
+                # tokens_in is the total input processed (uncached + cache read/write).
+                "tokens_in": input_tokens + cache_read + cache_creation,
+                "tokens_out": output_tokens,
                 "cost_usd": round(cost_usd, 6),
                 "latency_ms": round(latency_ms, 2),
             },

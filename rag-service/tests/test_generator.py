@@ -51,6 +51,8 @@ def _mock_anthropic_submit_answer(
     needs_review_reason=None,
     tokens_in=1850,
     tokens_out=180,
+    cache_read=0,
+    cache_creation=0,
 ):
     """Wire a patched Anthropic class to return a forced submit_answer tool call."""
     client = mock_anthropic.return_value
@@ -70,6 +72,8 @@ def _mock_anthropic_submit_answer(
     response.content = [block]
     response.usage.input_tokens = tokens_in
     response.usage.output_tokens = tokens_out
+    response.usage.cache_read_input_tokens = cache_read
+    response.usage.cache_creation_input_tokens = cache_creation
     client.messages.create.return_value = response
     return client
 
@@ -260,6 +264,8 @@ def test_generate_refusal_no_tool_block_returns_needs_review(mock_anthropic):
     response.content = [text_block]
     response.usage.input_tokens = 100
     response.usage.output_tokens = 5
+    response.usage.cache_read_input_tokens = 0
+    response.usage.cache_creation_input_tokens = 0
     client.messages.create.return_value = response
 
     result = AnswerGenerator(api_key="test-key").generate("Q?", [_chunk()])
@@ -308,3 +314,27 @@ def test_generate_reports_metrics(mock_anthropic):
     assert set(metrics) >= {"tokens_in", "tokens_out", "cost_usd", "latency_ms"}
     assert metrics["tokens_in"] == 1850
     assert metrics["tokens_out"] == 180
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_cost_discounts_cached_tokens(mock_anthropic):
+    """Cached input tokens are counted but billed at the cheaper cache-read rate."""
+    from app.rag.generator import AnswerGenerator
+
+    _mock_anthropic_submit_answer(
+        mock_anthropic, tokens_in=200, tokens_out=180, cache_read=4000
+    )
+
+    result = AnswerGenerator(api_key="test-key").generate("Q?", [_chunk()])
+    metrics = result["metrics"]
+
+    # All input is counted (200 uncached + 4000 from cache)...
+    assert metrics["tokens_in"] == 4200
+    # ...but the 4000 cached tokens are billed at 0.1x the input rate.
+    expected = (
+        200 / 1_000_000 * 3.0 + 4000 / 1_000_000 * 3.0 * 0.10 + 180 / 1_000_000 * 15.0
+    )
+    assert metrics["cost_usd"] == round(expected, 6)
+    # Cheaper than billing all 4200 input tokens at the full rate.
+    naive = round(4200 / 1_000_000 * 3.0 + 180 / 1_000_000 * 15.0, 6)
+    assert metrics["cost_usd"] < naive
