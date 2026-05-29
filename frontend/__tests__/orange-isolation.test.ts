@@ -91,3 +91,27 @@ describe("Slice 9 — orange stays off the dropzone, toast, skeleton + spinner C
     }
   });
 });
+
+describe("Slice 10 — orange stays off the tabs, timeline + progress CSS", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("keeps orange off every tab, timeline, progress, and answer-body rule", () => {
+    const surfaces = [
+      ".tabs",
+      ".tab",
+      ".tab.active::after",
+      ".timeline",
+      ".tl-dot",
+      ".tl-step.done .tl-dot",
+      ".tl-step.active .tl-dot",
+      ".tl-title",
+      ".tl-sub",
+      ".progress",
+      ".progress > span",
+      ".pretty",
+    ];
+    for (const selector of surfaces) {
+      expect(ruleBody(selector), `${selector} must not reference orange`).not.toMatch(ORANGE);
+    }
+  });
+});
