@@ -21,6 +21,7 @@ from anthropic import Anthropic
 
 from app.core.config import settings
 from app.core.llm import create_message
+from app.core.pricing import rates_for
 from app.core.isq_prompts import (
     ANSWER_FEW_SHOTS,
     ANSWER_SYSTEM_PROMPT,
@@ -46,14 +47,10 @@ class AnswerGenerator:
 
     # Answers are short (a few sentences) plus a compact tool payload; 1024 is ample.
     MAX_TOKENS = 1024
-    # claude-sonnet-4-5 list pricing, USD per million tokens. Valid only for that
-    # model — cost_usd would be wrong if a different model were injected, so update
-    # these alongside any model change (the model is fixed by CLAUDE.md today).
-    COST_PER_MTOK_IN = 3.0
-    COST_PER_MTOK_OUT = 15.0
-    # Prompt-cache multipliers on the base input rate (claude-sonnet-4-5): a cache
-    # write costs 1.25x, a cache read 0.1x. Without these, billing the cached system
-    # block at the full input rate would overstate cost on questions 2..N of an ISQ.
+    # Prompt-cache multipliers on the base input rate: a cache write costs 1.25x, a
+    # cache read 0.1x. Without these, billing the cached system block at the full input
+    # rate would overstate cost on questions 2..N of an ISQ. The per-model base rates
+    # live in app.core.pricing and are resolved per instance (see __init__).
     CACHE_WRITE_MULTIPLIER = 1.25
     CACHE_READ_MULTIPLIER = 0.10
 
@@ -65,6 +62,9 @@ class AnswerGenerator:
         """
         self.model = model or settings.anthropic_model
         self.client = Anthropic(api_key=api_key or settings.anthropic_api_key)
+        # Token rates track the configured model, so cost_usd is correct whichever
+        # model runs, not pinned to one model's prices (app.core.pricing).
+        self.cost_per_mtok_in, self.cost_per_mtok_out = rates_for(self.model)
 
     def generate(
         self,
@@ -200,16 +200,16 @@ class AnswerGenerator:
     ) -> dict:
         """Assemble the answer payload, including cache-aware cost/latency metrics."""
         cost_usd = (
-            input_tokens / 1_000_000 * self.COST_PER_MTOK_IN
+            input_tokens / 1_000_000 * self.cost_per_mtok_in
             + cache_creation
             / 1_000_000
-            * self.COST_PER_MTOK_IN
+            * self.cost_per_mtok_in
             * self.CACHE_WRITE_MULTIPLIER
             + cache_read
             / 1_000_000
-            * self.COST_PER_MTOK_IN
+            * self.cost_per_mtok_in
             * self.CACHE_READ_MULTIPLIER
-            + output_tokens / 1_000_000 * self.COST_PER_MTOK_OUT
+            + output_tokens / 1_000_000 * self.cost_per_mtok_out
         )
         return {
             "answer": answer,
