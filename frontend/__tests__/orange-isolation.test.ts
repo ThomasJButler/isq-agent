@@ -52,3 +52,23 @@ describe("Slice 7 — orange stays on the claude badge only", () => {
     }
   });
 });
+
+describe("Slice 8 — orange stays off the card + confidence-bar CSS", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("keeps orange off every card and confidence-bar rule", () => {
+    const surfaces = [
+      ".card",
+      ".card-paper",
+      ".card-lift",
+      ".conf",
+      ".conf-bar",
+      ".conf-high > span",
+      ".conf-mid > span",
+      ".conf-low > span",
+    ];
+    for (const selector of surfaces) {
+      expect(ruleBody(selector), `${selector} must not reference orange`).not.toMatch(ORANGE);
+    }
+  });
+});
