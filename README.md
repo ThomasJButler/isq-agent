@@ -30,6 +30,21 @@ docker compose up     # starts n8n on :5678 and rag-service on :8000
 
 Open http://localhost:5678 to use the n8n workflow.
 
+## Claude Code skill
+
+The same engine is packaged as an installable Claude Code skill in
+[`skill/isq-agent/`](./skill/isq-agent/). With the rag-service running, package and install it:
+
+```bash
+cd skill && zip -r ../isq-agent.skill isq-agent/ -x '*__pycache__*'
+claude skill install ./isq-agent.skill
+```
+
+Then in any Claude Code chat, refer to an ISQ (for example "process the Sunflowers
+questionnaire") and the skill triggers, calls the local service, and writes the filled outputs
+to `./outputs/`. See [`skill/isq-agent/SKILL.md`](./skill/isq-agent/SKILL.md) and the HTTP
+contract in [`skill/isq-agent/references/service_contract.md`](./skill/isq-agent/references/service_contract.md).
+
 ## Tech stack
 
 n8n (workflow) · Python 3.11 + FastAPI (RAG service) · Anthropic Claude Sonnet 4.5

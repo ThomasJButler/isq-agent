@@ -49,6 +49,7 @@ outputs/
 *.pdf
 !docs/*.pdf
 !design/**/*.pdf
+*.skill
 
 # ---------- IDEs / OS ----------
 .idea/
