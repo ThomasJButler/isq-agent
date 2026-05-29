@@ -249,3 +249,23 @@ def test_discover_corpus_files_scopes_to_knowledge_base(tmp_path):
     }
     assert "Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf" not in names
     assert "AI Engineer Technical Challenge.pdf" not in names
+
+
+def test_discover_corpus_files_warns_on_missing_kb_folder(tmp_path, caplog):
+    """A missing knowledge-base folder is logged, not silently dropped.
+
+    Silent skipping is dangerous: force_reindex deletes the index first, so a
+    renamed folder could otherwise replace a good index with nothing.
+    """
+    from app.api.index import discover_corpus_files
+
+    policies = tmp_path / "Northstar Labs Policies"
+    policies.mkdir()
+    (policies / "Northstar_Labs_Information_Security_Policy.pdf").touch()
+    # "Northstar Labs Completed ISQs" is intentionally absent.
+
+    with caplog.at_level("WARNING"):
+        found = discover_corpus_files(tmp_path)
+
+    assert [p.name for p in found] == ["Northstar_Labs_Information_Security_Policy.pdf"]
+    assert "Completed ISQs" in caplog.text

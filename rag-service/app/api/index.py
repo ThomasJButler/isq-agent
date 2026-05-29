@@ -79,12 +79,17 @@ def discover_corpus_files(corpus_dir: Path = CORPUS_DIR) -> list[Path]:
     files: list[Path] = []
     for subdir in KB_SUBDIRS:
         kb_dir = corpus_dir / subdir
-        if kb_dir.is_dir():
-            files.extend(
-                p
-                for p in kb_dir.rglob("*")
-                if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
-            )
+        if not kb_dir.is_dir():
+            # Warn loudly: a missing/renamed folder would otherwise silently shrink
+            # the index — and with force_reindex it wipes first, so a typo'd folder
+            # name could replace a good index with nothing.
+            logger.warning("Knowledge-base folder not found, skipping: %s", kb_dir)
+            continue
+        files.extend(
+            p
+            for p in kb_dir.rglob("*")
+            if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES
+        )
     return sorted(files)
 
 
