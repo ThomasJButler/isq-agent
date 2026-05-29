@@ -1,0 +1,33 @@
+flowchart TB
+  subgraph client["Client"]
+    SK["Packaged Claude Code skill or curl"]
+    NT["n8n trigger + per-question loop<br/>(designed tier, :5678)"]
+  end
+
+  subgraph rag["FastAPI RAG service - the engine (:8000)"]
+    EX["/extract-questions"]
+    PROC["/process-questionnaire<br/>assembler"]
+    ANS["/answer (one question)"]
+    PIPE["Retriever then Generator then Confidence"]
+    REN["/render to DOCX / XLSX / JSON"]
+    IDX["/index (build the knowledge base)"]
+  end
+
+  subgraph ext["External APIs"]
+    V[("Voyage voyage-3-large")]
+    P[("Pinecone")]
+    A[("Anthropic Claude")]
+  end
+
+  SC[/"source-corpus: policies + historical ISQs"/]
+
+  SK --> EX --> PROC --> PIPE
+  PROC --> REN
+  NT -. designed .-> EX
+  NT -. per question .-> ANS --> PIPE
+  PIPE --> V & P & A
+  IDX --> SC & V & P
+
+  style rag fill:#f3e5f5,stroke:#7b1fa2
+  style client fill:#e3f2fd,stroke:#1976d2
+  style ext fill:#fff3e0,stroke:#f57c00
