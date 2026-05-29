@@ -80,6 +80,74 @@ def test_upsert_chunks_succeeds(mock_pinecone):
 
 
 @patch("app.core.pinecone_client.Pinecone")
+def test_upsert_chunks_strips_null_metadata(mock_pinecone):
+    """Null metadata values are dropped before upsert — Pinecone rejects nulls.
+
+    Policy chunks carry section_title/isq_question_text as None (those fields only
+    apply to historical ISQs). Pinecone's metadata only accepts string/number/
+    boolean/list-of-strings, so a None must be omitted, not sent as JSON null.
+    """
+    from app.core.pinecone_client import PineconeClient
+
+    mock_pc = _mock_pc_with_index(mock_pinecone, ["isq-agent-knowledge"])
+    mock_index = mock_pc.Index.return_value
+
+    client = PineconeClient(api_key="k", index_name="isq-agent-knowledge")
+
+    chunks = [
+        {
+            "id": "isp-p1-c0",
+            "values": [0.1] * 1024,
+            "metadata": {
+                "source": "policy.pdf",
+                "source_type": "policy",
+                "section_title": None,  # only set for some sources
+                "page": 1,
+                "isq_question_text": None,  # only set for historical ISQs
+                "text": "MFA is mandatory.",
+            },
+        }
+    ]
+    result = client.upsert_chunks(chunks)
+
+    _, kwargs = mock_index.upsert.call_args
+    sent_metadata = kwargs["vectors"][0]["metadata"]
+    # Nulls dropped; non-null fields (including falsy-but-valid ones) preserved.
+    assert "section_title" not in sent_metadata
+    assert "isq_question_text" not in sent_metadata
+    assert sent_metadata["source"] == "policy.pdf"
+    assert sent_metadata["page"] == 1
+    assert sent_metadata["text"] == "MFA is mandatory."
+    # id and values pass through untouched.
+    assert kwargs["vectors"][0]["id"] == "isp-p1-c0"
+    assert kwargs["vectors"][0]["values"] == [0.1] * 1024
+    assert result["upserted_count"] == 1
+
+
+@patch("app.core.pinecone_client.Pinecone")
+def test_upsert_chunks_preserves_falsy_non_null_metadata(mock_pinecone):
+    """0, 0.0, False and "" are valid Pinecone values — only None is dropped."""
+    from app.core.pinecone_client import PineconeClient
+
+    mock_pc = _mock_pc_with_index(mock_pinecone, ["isq-agent-knowledge"])
+    mock_index = mock_pc.Index.return_value
+
+    client = PineconeClient(api_key="k", index_name="isq-agent-knowledge")
+
+    chunks = [
+        {
+            "id": "v0",
+            "values": [0.0] * 4,
+            "metadata": {"page": 0, "chunk_index": 0, "dropped": None},
+        }
+    ]
+    client.upsert_chunks(chunks)
+
+    sent_metadata = mock_index.upsert.call_args.kwargs["vectors"][0]["metadata"]
+    assert sent_metadata == {"page": 0, "chunk_index": 0}  # None gone, zeros kept
+
+
+@patch("app.core.pinecone_client.Pinecone")
 def test_upsert_chunks_batches_over_100(mock_pinecone):
     """Upserts >100 vectors are split into batches of at most 100 per call (locked limit)."""
     from app.core.pinecone_client import PineconeClient
