@@ -18,6 +18,9 @@ import type { JSX, ReactNode, SVGProps } from "react";
 //
 // file / email / x (Slice 14) are the prototype's exact path data — the /upload
 // example shortcuts, the "Or send to" inbox helper, and the ErrorBanner dismiss.
+//
+// hash / zap / clock (Slice 15) are the prototype's exact path data — the
+// Processing screen's "Answered", "Est. cost", and "Elapsed" counter tiles.
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "ref"> {
   /** Square size in pixels (default 16). */
@@ -207,6 +210,34 @@ export function XIcon(props: IconProps): JSX.Element {
   return (
     <Icon {...props}>
       <path d="M6 6l12 12M18 6L6 18" />
+    </Icon>
+  );
+}
+
+export function HashIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <line x1="4" y1="9" x2="20" y2="9" />
+      <line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="10" y1="3" x2="8" y2="21" />
+      <line x1="16" y1="3" x2="14" y2="21" />
+    </Icon>
+  );
+}
+
+export function ZapIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+    </Icon>
+  );
+}
+
+export function ClockIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
     </Icon>
   );
 }
