@@ -921,4 +921,70 @@
       transform: none;
     }
   }
+
+  /* —— Hybrid signature: diagonal blue ribbon (landing hero only) ——
+     Two real <span> children give screenshot-safe rendering (some html-to-image
+     renderers drop skewed pseudo-elements). The fills are decorative blues only
+     — zero orange. Ported from the prototype tokens.css. */
+  .river-ribbon {
+    position: relative;
+    overflow: hidden;
+  }
+  /* Lift the content above the z-index:0 fills so they never cover it. The
+     prototype set this inline per usage; keeping it on the component is robust. */
+  .river-ribbon-content {
+    position: relative;
+    z-index: 1;
+  }
+  .river-ribbon-fill {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .river-ribbon-fill-1 {
+    top: -10%;
+    right: -8%;
+    width: 55%;
+    height: 130%;
+    background: linear-gradient(
+      115deg,
+      rgba(147, 196, 253, 0) 0%,
+      rgba(147, 196, 253, 0.55) 32%,
+      rgba(59, 130, 246, 0.65) 55%,
+      rgba(31, 95, 184, 0.55) 100%
+    );
+    transform: skewX(-14deg);
+    filter: blur(1px);
+  }
+  .river-ribbon-fill-2 {
+    top: 5%;
+    right: 10%;
+    width: 35%;
+    height: 110%;
+    background: linear-gradient(
+      115deg,
+      rgba(147, 196, 253, 0) 0%,
+      rgba(147, 196, 253, 0.35) 50%,
+      rgba(59, 130, 246, 0.3) 100%
+    );
+    transform: skewX(-14deg);
+  }
+  .river-ribbon.subtle .river-ribbon-fill-1 {
+    background: linear-gradient(
+      115deg,
+      rgba(147, 196, 253, 0) 0%,
+      rgba(147, 196, 253, 0.32) 35%,
+      rgba(59, 130, 246, 0.36) 60%,
+      rgba(31, 95, 184, 0.3) 100%
+    );
+  }
+  .river-ribbon.subtle .river-ribbon-fill-2 {
+    background: linear-gradient(
+      115deg,
+      rgba(147, 196, 253, 0) 0%,
+      rgba(147, 196, 253, 0.2) 50%,
+      rgba(59, 130, 246, 0.18) 100%
+    );
+  }
 }
