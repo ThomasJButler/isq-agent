@@ -8,6 +8,7 @@ import { Card } from "@/components/Card";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { Footer } from "@/components/Footer";
 import { ResultsBanner } from "@/components/ResultsBanner";
+import { Spinner } from "@/components/Spinner";
 import { Tabs } from "@/components/Tabs";
 import { Toast } from "@/components/Toast";
 import {
@@ -20,20 +21,19 @@ import {
   WarningIcon,
 } from "@/components/icons";
 import { toRunViewModel } from "@/lib/adapter";
+import { fetchRun, RunNotFoundError } from "@/lib/api";
 import { downloadRender, type RenderFormat } from "@/lib/download";
 import { formatConfidence, formatCurrency, formatDuration } from "@/lib/format";
-import { MOCK_ENVELOPE } from "@/lib/mock";
-import type { RunViewModel } from "@/lib/types";
+import type { CanonicalEnvelope, RunViewModel } from "@/lib/types";
 
 // Screen 4 — Results. Ported from the prototype's ResultsPage (pages.jsx Screen 4)
 // and the LAST Phase D screen. It's the target of the Slice 15 completion
 // router.push("/runs/<id>/results"), so building it closes that 404 gap.
 //
-// THE PAYOFF OF THE SLICE 3 ADAPTER: this is the first screen to consume real
-// view-model data. It runs the canonical MOCK_ENVELOPE through toRunViewModel()
-// rather than binding to a hand-shaped mock, so the renames / flatten / lift /
-// derived top_citations all flow through. The §8 glue swaps MOCK_ENVELOPE for a
-// live fetch keyed by the run id; the binding below stays identical.
+// THE PAYOFF OF THE SLICE 3 ADAPTER: this screen consumes real view-model data. It
+// fetches the run from GET /runs/{id} (lib/api.fetchRun) keyed by the URL id, runs the
+// canonical envelope through toRunViewModel(), and binds the renames / flatten / lift /
+// derived top_citations. Loading / not-found / error states wrap the fetch.
 //
 // It's a "use client" page: it reads [id] via useParams() for the header and owns
 // the active tab + expanded-answer Set + a download/copy toast. The Citations and
@@ -55,9 +55,42 @@ const CONTAINER: CSSProperties = {
 
 const MONO: CSSProperties = { fontFamily: "var(--font-mono)" };
 
-// The view model is a pure transform of a constant envelope, so build it once at
-// module scope rather than re-deriving it on every render.
-const MODEL = toRunViewModel(MOCK_ENVELOPE);
+// Loading / not-found / error wrapper for the live fetch — shares the page container
+// so the chrome stays consistent while the run loads or a fetch fails.
+function ResultsStatus({ status }: { status: "loading" | "notfound" | "error" }): JSX.Element {
+  const copy = {
+    loading: "Loading run…",
+    notfound:
+      "This run wasn't found — it may have expired (runs are kept in memory). Start a new one.",
+    error: "The backend may be unreachable. Try again in a moment.",
+  }[status];
+  return (
+    <div data-screen-label="04 Results">
+      <div style={{ ...CONTAINER, paddingTop: 96, paddingBottom: 96, textAlign: "center" }}>
+        {status === "loading" ? (
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <Spinner size={16} />
+            <span className="muted" style={{ fontSize: 14 }}>
+              {copy}
+            </span>
+          </div>
+        ) : (
+          <>
+            <h1 style={{ fontSize: 22, fontWeight: 600, margin: "0 0 10px" }}>
+              {status === "notfound" ? "Run not found" : "Couldn't load this run"}
+            </h1>
+            <p className="muted" style={{ fontSize: 14, maxWidth: 440, margin: "0 auto 20px" }}>
+              {copy}
+            </p>
+            <Button href="/upload" variant="primary">
+              New questionnaire
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // A small labelled figure — the prototype's <MiniStat> (pages.jsx:554). Value in
 // mono so the columns stay aligned; `warn` tone uses the semantic warning token
@@ -281,6 +314,8 @@ export default function ResultsPage(): JSX.Element {
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set([1, 6]));
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [run, setRun] = useState<{ model: RunViewModel; envelope: CanonicalEnvelope } | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "notfound" | "error">("loading");
 
   // Clear a pending auto-dismiss on unmount so a late setState can't fire after
   // the page is gone (the test unmounts before the 2.2s timer elapses).
@@ -289,6 +324,26 @@ export default function ResultsPage(): JSX.Element {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
+
+  // Live-fetch the run from GET /runs/{id} (the §8 glue). The id is the backend's
+  // run_id, carried in the URL by the upload -> process flow.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    fetchRun(id)
+      .then((envelope) => {
+        if (cancelled) return;
+        setRun({ model: toRunViewModel(envelope), envelope });
+        setStatus("ready");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setStatus(err instanceof RunNotFoundError ? "notfound" : "error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   function showToast(message: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -320,16 +375,22 @@ export default function ResultsPage(): JSX.Element {
   }
 
   async function handleDownload(format: RenderFormat) {
+    if (!run) return;
     showToast(`Preparing ${format.toUpperCase()}…`);
     try {
-      await downloadRender(format, MOCK_ENVELOPE);
+      await downloadRender(format, run.envelope);
     } catch {
       showToast("Download failed. Is the backend reachable?");
     }
   }
 
-  const { meta, summary } = MODEL;
-  const filtered = tab === "flagged" ? MODEL.answers.filter((a) => a.needs_review) : MODEL.answers;
+  if (status === "notfound") return <ResultsStatus status="notfound" />;
+  if (status === "error") return <ResultsStatus status="error" />;
+  if (!run) return <ResultsStatus status="loading" />;
+
+  const { model } = run;
+  const { meta, summary } = model;
+  const filtered = tab === "flagged" ? model.answers.filter((a) => a.needs_review) : model.answers;
   const showAnswerList = tab === "answers" || tab === "flagged";
 
   return (
@@ -498,7 +559,7 @@ export default function ResultsPage(): JSX.Element {
             items={[
               { id: "answers", label: "Answers", count: summary.total_questions },
               { id: "flagged", label: "Flagged", count: summary.flagged_count },
-              { id: "citations", label: "Citations", count: MODEL.top_citations.length },
+              { id: "citations", label: "Citations", count: model.top_citations.length },
               { id: "metrics", label: "Metrics" },
             ]}
           />
@@ -516,8 +577,8 @@ export default function ResultsPage(): JSX.Element {
                 ))}
               </div>
             )}
-            {tab === "citations" && <CitationsTab model={MODEL} />}
-            {tab === "metrics" && <MetricsTab model={MODEL} />}
+            {tab === "citations" && <CitationsTab model={model} />}
+            {tab === "metrics" && <MetricsTab model={model} />}
           </div>
         </div>
       </div>
