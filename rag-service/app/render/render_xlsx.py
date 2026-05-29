@@ -1,19 +1,21 @@
 """
-XLSX overlay renderer (Plan 9).
+XLSX renderer (Plan 9, extended in Plan 10).
 
-Unlike the typeset DOCX renderer, this OVERLAYS the canonical answers onto a copy of
-the original questionnaire: it opens the source workbook, finds the Response column,
-and writes each answer into the matching row. Flagged answers get a yellow fill + a
-[REVIEW] prefix so a reviewer spots them at a glance. A second "Summary" sheet carries
-the run summary (and a run-level banner when every answer is flagged or every one failed).
+Has two paths, chosen by whether a source workbook is given:
 
-Overlay needs the original file, so render_xlsx takes a third arg (source_path) the
-typeset renderers don't. Answers map to data rows by position — both are 1-based
-ordinals from the same extraction pass, in order. The source file is never mutated:
-we load it, populate in memory, and save to output_path.
+- Overlay (source_path supplied): open a copy of the original questionnaire, find the
+  Response column, and write each answer into the matching row. Answers map to data rows
+  by position; both are 1-based ordinals from the same extraction pass, in order. The
+  source file is never mutated: it is loaded, populated in memory, and saved to output_path.
+- Standalone (source_path None): build a fresh workbook, one row per question. Used for PDF
+  inputs, which have no source workbook to overlay onto.
+
+In both paths flagged answers get a yellow fill + a [REVIEW] prefix so a reviewer spots them
+at a glance, and a second "Summary" sheet carries the run summary (and a run-level banner
+when every answer is flagged or every one failed).
 """
 
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -37,22 +39,58 @@ _FLAGGED_FILL = PatternFill(
 )
 
 
-def render_xlsx(canonical: dict, output_path: str, source_path: str) -> str:
-    """Overlay the canonical answers onto a copy of the source questionnaire.
+def render_xlsx(
+    canonical: dict, output_path: str, source_path: str | None = None
+) -> str:
+    """Render the canonical answers to XLSX.
 
-    Returns the output path. The source file at source_path is not modified.
+    With a source workbook the answers are overlaid onto a copy of it; without one a
+    standalone workbook is built instead (PDF inputs have no source to overlay). The
+    source file at source_path is never modified.
     """
     answers = canonical.get("answers", [])
     summary = canonical.get("summary_metrics", {})
     meta = canonical.get("questionnaire_meta", {})
 
-    workbook = load_workbook(source_path)
-    sheet = workbook.active
-    _overlay_answers(sheet, answers)
+    if source_path is not None:
+        workbook = load_workbook(source_path)
+        sheet = workbook.active
+        _overlay_answers(sheet, answers)
+    else:
+        workbook = _build_standalone_workbook(answers)
     _add_summary_sheet(workbook, meta, summary)
 
     workbook.save(output_path)
     return output_path
+
+
+def _build_standalone_workbook(answers: list[dict]) -> Workbook:
+    """Build a fresh workbook (one row per question) when there's no source to overlay onto.
+
+    Flagged answers get the same [REVIEW] prefix + yellow fill as the overlay path, so a
+    reviewer spots them at a glance whatever the input format was.
+    """
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Responses"
+    sheet.append(["#", "Question", "Answer", "Needs review", "Review reason"])
+    answer_col = 3  # ["#", "Question", "Answer", ...]
+    for position, ans in enumerate(answers, start=1):
+        confidence = ans.get("confidence") or {}
+        flagged = bool(confidence.get("needs_review"))
+        text = ans.get("answer", "")
+        sheet.append(
+            [
+                position,
+                ans.get("question_text", ""),
+                f"{XLSX_REVIEW_PREFIX}{text}" if flagged else text,
+                "yes" if flagged else "no",
+                confidence.get("review_reason") or "",
+            ]
+        )
+        if flagged:
+            sheet.cell(row=sheet.max_row, column=answer_col).fill = _FLAGGED_FILL
+    return workbook
 
 
 def _find_response_column(sheet: Worksheet) -> tuple[int, int] | None:

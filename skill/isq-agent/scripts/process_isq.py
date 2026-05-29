@@ -7,6 +7,11 @@ questionnaire and assemble the canonical envelope, then writes the deliverables 
 The JSON deliverable is always written (stdlib only); the DOCX (and XLSX, for XLSX inputs) are
 rendered when the rag-service package is importable (set ISQ_AGENT_REPO to the repo root).
 
+Environment:
+- ISQ_AGENT_URL: where to find the service (default http://localhost:8000).
+- ISQ_AGENT_REPO: repo root, so the renderers can be imported for DOCX/XLSX output.
+- ISQ_AGENT_TIMEOUT: client timeout in seconds for a whole-questionnaire run (default 600).
+
 Exit 0 on success, 1 on a usage or input error. Network and parsing imports are deferred into
 the orchestration helpers so the argument-validation path needs nothing beyond the stdlib.
 """
@@ -18,6 +23,21 @@ from pathlib import Path
 
 BASE_URL = os.environ.get("ISQ_AGENT_URL", "http://localhost:8000")
 SUPPORTED = (".pdf", ".xlsx")
+
+# A full questionnaire is answered one question at a time (~6s each), so a 20-question run
+# is ~2 minutes. The default must comfortably clear that; override for very large ones.
+DEFAULT_TIMEOUT_S = 600.0
+
+
+def _timeout() -> float:
+    """Client timeout in seconds (env ISQ_AGENT_TIMEOUT overrides the generous default).
+
+    A non-numeric override falls back to the default rather than crashing the run.
+    """
+    try:
+        return float(os.environ.get("ISQ_AGENT_TIMEOUT", DEFAULT_TIMEOUT_S))
+    except ValueError:
+        return DEFAULT_TIMEOUT_S
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -50,7 +70,7 @@ def _process(input_path: Path) -> int:
     else:
         extract_body["source_rows"] = _xlsx_rows(input_path)
 
-    with httpx.Client(base_url=BASE_URL, timeout=120.0) as client:
+    with httpx.Client(base_url=BASE_URL, timeout=_timeout()) as client:
         print(f"Extracting questions from {input_path.name}...")
         extracted = client.post("/extract-questions", json=extract_body)
         extracted.raise_for_status()

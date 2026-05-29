@@ -28,6 +28,7 @@ Generate professional, evidence-backed answers to supplier Information Security 
 - The corpus must be indexed (one-off): `python skill/isq-agent/scripts/reindex_corpus.py`.
 - API keys for Voyage, Anthropic and Pinecone configured in the repo `.env`.
 - To also render DOCX/XLSX (not just JSON), set `ISQ_AGENT_REPO` to the repo root so the scripts can import the renderers.
+- Optional: `ISQ_AGENT_URL` overrides the service URL (default `http://localhost:8000`), and `ISQ_AGENT_TIMEOUT` sets the client timeout in seconds for a whole-questionnaire run (default `600`; raise it for very large questionnaires).
 
 ## How to use
 

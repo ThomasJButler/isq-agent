@@ -63,3 +63,16 @@ calls after extracting the questions.
 
 - A question whose generation failed carries `confidence: null` and is counted as flagged.
 - `banner` is `"all_flagged"`, `"all_failed"`, or `null`.
+
+## POST /render
+
+Render the canonical envelope to a downloadable file. The n8n workflow uses this because it
+can't import the Python renderers in-process the way the skill does.
+
+- Request (`multipart/form-data`): `format` (`docx` | `xlsx` | `json`), `envelope` (the
+  canonical envelope as a JSON string), and an optional `source` file (the original `.xlsx`
+  workbook, used to overlay answers for XLSX inputs).
+- Response: the rendered file as an attachment (`Content-Disposition: attachment`) with the
+  matching content type. For `xlsx`, answers are overlaid onto `source` when it is supplied,
+  otherwise a standalone workbook is produced. Unknown formats and malformed envelopes return
+  400.

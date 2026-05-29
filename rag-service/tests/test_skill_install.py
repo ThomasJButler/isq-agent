@@ -196,6 +196,34 @@ def test_reindex_corpus_returns_1_on_failure(monkeypatch):
 # packaging
 
 
+def test_process_isq_default_timeout_is_generous(monkeypatch):
+    """A full questionnaire is ~6s/question, so the client timeout must comfortably exceed
+    the old 120s (which timed out on a real 20-question run while the server was still working)."""
+    monkeypatch.delenv("ISQ_AGENT_TIMEOUT", raising=False)
+    pi = _load_script("process_isq.py")
+    assert pi._timeout() >= 300
+
+
+def test_process_isq_timeout_env_override(monkeypatch):
+    """The timeout is configurable for very large questionnaires."""
+    monkeypatch.setenv("ISQ_AGENT_TIMEOUT", "900")
+    pi = _load_script("process_isq.py")
+    assert pi._timeout() == 900.0
+
+
+def test_process_isq_timeout_ignores_non_numeric_env(monkeypatch):
+    """A malformed ISQ_AGENT_TIMEOUT falls back to the default rather than crashing the run."""
+    monkeypatch.setenv("ISQ_AGENT_TIMEOUT", "not-a-number")
+    pi = _load_script("process_isq.py")
+    assert pi._timeout() == pi.DEFAULT_TIMEOUT_S
+
+
+def test_skill_md_documents_timeout_env():
+    """SKILL.md must document the ISQ_AGENT_TIMEOUT knob (alongside URL/REPO)."""
+    text = SKILL_MD.read_text(encoding="utf-8")
+    assert "ISQ_AGENT_TIMEOUT" in text
+
+
 def test_zip_packaging_produces_valid_skill_file(tmp_path):
     skill_root = SKILL_DIR.parent  # <repo>/skill
     out = tmp_path / "isq-agent.skill"
