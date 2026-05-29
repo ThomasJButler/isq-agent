@@ -475,6 +475,30 @@
     gap: 6px;
   }
 
+  /* —— Light/dark toggle (Slice 17 tweak #6) — a round icon button at the far
+     right of the bar. The focus ring comes from the global *:focus-visible rule
+     (2px river-blue), so no bespoke focus styling here. —— */
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border-1);
+    background: transparent;
+    color: var(--fg-2);
+    transition:
+      color var(--dur-fast) var(--ease),
+      background var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease);
+  }
+  .theme-toggle:hover {
+    color: var(--fg-1);
+    background: var(--bg-2);
+    border-color: var(--border-2);
+  }
+
   /* —— Buttons — all pills (prototype <Button> → tokens.css .btn) —— */
   .btn {
     display: inline-flex;
@@ -1200,5 +1224,28 @@
   .slider-input:focus-visible ~ .slider-thumb {
     border-color: var(--river-blue);
     box-shadow: 0 0 0 3px var(--river-blue-tint);
+  }
+
+  /* —— Dark-mode surface overrides (Slice 17 tweak #6) ——
+     Most components read swap-aware tokens (var(--bg-*), var(--fg-*)) so they
+     follow the theme for free. These four were the holdouts: they hardcode the
+     light paper/white that lifts them off #FAF9F5, which reads as glaring white
+     islands on the dark charcoal. Re-point just those fills at dark tokens —
+     borders, text, focus rings already swap, so only the fill needs an override.
+     Same @layer components, but `.dark .x` outranks `.x` on specificity. */
+  .dark .topbar {
+    background: rgba(38, 38, 36, 0.88); /* bg-0 #262624 at the bar's 88% paper opacity */
+  }
+  .dark .btn-secondary {
+    background: var(--bg-2);
+  }
+  .dark .btn-secondary:hover {
+    background: var(--bg-3);
+  }
+  .dark .dropzone {
+    background: var(--bg-1);
+  }
+  .dark .input {
+    background: var(--bg-1);
   }
 }

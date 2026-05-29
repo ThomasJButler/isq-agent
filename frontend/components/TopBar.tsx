@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { JSX } from "react";
+import { ThemeToggle } from "./ThemeToggle";
 import { Wordmark } from "./Wordmark";
 
 const REPO_URL = "https://github.com/ThomasJButler/isq-agent";
@@ -63,6 +64,9 @@ export function TopBar(): JSX.Element {
           <LinkIcon />
           Repo
         </a>
+        {/* Far-right light/dark toggle (Slice 17 tweak #6) — the visible control
+            for the dark theme the tokens already support. */}
+        <ThemeToggle />
       </nav>
     </header>
   );
