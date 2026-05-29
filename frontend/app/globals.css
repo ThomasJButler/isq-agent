@@ -467,4 +467,155 @@
     align-items: center;
     gap: 6px;
   }
+
+  /* —— Buttons — all pills (prototype <Button> → tokens.css .btn) —— */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 44px;
+    padding: 0 22px;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-body-sm);
+    font-weight: var(--fw-medium);
+    line-height: 1;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--fg-1);
+    transition:
+      background var(--dur-fast) var(--ease),
+      border-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease),
+      transform var(--dur-fast) var(--ease);
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  .btn:hover {
+    text-decoration: none;
+  }
+  /* Press-scale 0.99 — Slice 17 tweak #3 settled 0.985 → 0.99. */
+  .btn:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  /* Primary = RiverAI black ink pill (#0A0A0A via --river-ink). */
+  .btn-primary {
+    background: var(--river-ink);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--river-ink-hover);
+    color: #fff;
+  }
+  .btn-primary:disabled {
+    background: var(--fg-5);
+    color: #fff;
+    cursor: not-allowed;
+  }
+
+  /* Secondary = white pill on paper. */
+  .btn-secondary {
+    background: #ffffff;
+    border-color: transparent;
+    color: var(--fg-1);
+    box-shadow: 0 0 0 1px var(--border-2);
+  }
+  .btn-secondary:hover {
+    background: #ffffff;
+    box-shadow: 0 0 0 1px var(--fg-3);
+    color: var(--fg-1);
+  }
+
+  .btn-ghost {
+    color: var(--fg-2);
+  }
+  .btn-ghost:hover {
+    background: var(--bg-2);
+    color: var(--fg-1);
+  }
+
+  /* Link = river-blue text button (never the Claude orange). */
+  .btn-link {
+    color: var(--river-blue);
+    padding: 0;
+    height: auto;
+    border: 0;
+    font-weight: var(--fw-medium);
+  }
+  .btn-link:hover {
+    text-decoration: underline;
+    color: var(--river-blue-deep);
+  }
+
+  .btn-lg {
+    height: 50px;
+    padding: 0 28px;
+    font-size: var(--fs-body);
+  }
+  .btn-sm {
+    height: 32px;
+    padding: 0 14px;
+    font-size: var(--fs-caption);
+  }
+
+  /* —— Badges — all pills (prototype <Badge> → tokens.css .badge) —— */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    height: 24px;
+    padding: 0 10px;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-caption);
+    font-weight: var(--fw-medium);
+    letter-spacing: 0;
+    border: 1px solid transparent;
+    background: var(--bg-2);
+    color: var(--fg-3);
+  }
+  .badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+  }
+  .badge-default {
+    background: var(--bg-2);
+    border-color: var(--border-1);
+    color: var(--fg-3);
+  }
+  .badge-success {
+    background: rgba(74, 124, 89, 0.1);
+    color: var(--success);
+    border-color: rgba(74, 124, 89, 0.25);
+  }
+  .badge-warning {
+    background: rgba(201, 122, 43, 0.1);
+    color: #8a5320;
+    border-color: rgba(201, 122, 43, 0.35);
+  }
+  .badge-error {
+    background: rgba(181, 68, 58, 0.08);
+    color: var(--danger);
+    border-color: rgba(181, 68, 58, 0.25);
+  }
+  .badge-accent {
+    background: var(--river-blue-tint);
+    color: var(--river-blue-deep);
+    border-color: rgba(42, 123, 226, 0.3);
+  }
+  /* The ONE place Crail orange is allowed — the Powered-by-Claude mark. */
+  .badge-claude {
+    background: transparent;
+    color: var(--claude-orange);
+    font-size: var(--fs-micro);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    font-weight: var(--fw-semibold);
+    padding: 0;
+    height: auto;
+    border: 0;
+  }
 }
