@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ConfidenceBar } from "@/components/ConfidenceBar";
 import { Footer } from "@/components/Footer";
+import { ResultsBanner } from "@/components/ResultsBanner";
 import { Tabs } from "@/components/Tabs";
 import { Toast } from "@/components/Toast";
 import {
@@ -362,6 +363,15 @@ export default function ResultsPage(): JSX.Element {
             New run
           </Button>
         </div>
+
+        {/* Run-level banner — surfaces the adapter's summary.banner
+            (all_failed / all_flagged). Renders nothing on the normal path, so
+            it's gated here to avoid a stray empty margin. */}
+        {summary.banner && (
+          <div style={{ marginTop: 16 }}>
+            <ResultsBanner banner={summary.banner} />
+          </div>
+        )}
 
         {/* Summary + downloads. flex-wrap (not a rigid grid) so the flagged card
             stacks below the deliverables on narrow screens with no media query
