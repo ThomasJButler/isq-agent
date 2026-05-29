@@ -105,7 +105,7 @@ lot and assemble the canonical envelope, then `POST /render` for a downloadable 
 
 ## Tech stack
 
-n8n (workflow) · Python 3.11 + FastAPI (RAG service) · Anthropic Claude Sonnet 4.5 ·
+n8n (workflow) · Python 3.11 + FastAPI (RAG service) · Anthropic Claude Sonnet 4.5 (model-selectable via `ANTHROPIC_MODEL`) ·
 Voyage AI `voyage-3-large` (embeddings) · Pinecone (vector store) · python-docx + openpyxl
 (rendering) · Docker Compose.
 

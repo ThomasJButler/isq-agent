@@ -12,11 +12,11 @@ The documents are RiverAI's assessment material, so they stay out of the public 
 `.gitignore` does this with two lines:
 
 ```
-source-corpus/
+source-corpus/*
 !source-corpus/README.md
 ```
 
-Everything under the folder is ignored, except this README.
+Everything under the folder is ignored, except this README. (The glob `source-corpus/*` ignores the contents rather than the directory itself, which is what lets the `!` negation re-include this one file. A bare `source-corpus/` would swallow the exception.)
 
 ## What lives here
 
