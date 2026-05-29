@@ -394,3 +394,77 @@
     line-height: var(--lh-snug);
   }
 }
+
+/* ============================================================
+   Component classes (Phase C). In @layer components so Tailwind utilities
+   still win (Tailwind v4 orders layers theme < base < components < utilities).
+   Ported from design/.../prototype-hybrid/tokens.css; the wordmark's sparkle is
+   an inline SVG in the component (Slice 17 tweak #1), not a clip-path glyph.
+   ============================================================ */
+@layer components {
+  /* —— Wordmark —— */
+  .wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    font-weight: var(--fw-bold);
+    font-size: 19px;
+    color: var(--fg-1);
+    letter-spacing: -0.02em;
+  }
+  .wordmark .wordmark-gap {
+    display: inline-block;
+    width: 6px;
+  }
+  .wordmark .accent {
+    display: inline-flex;
+    align-items: center;
+    color: var(--river-blue);
+  }
+  .wordmark .sparkle {
+    margin-left: 3px;
+    color: var(--river-blue-bright);
+  }
+
+  /* —— Top bar —— */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 64px;
+    background: rgba(250, 249, 245, 0.88);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--border-1);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-8);
+  }
+  .topbar .wordmark-link {
+    color: inherit;
+    text-decoration: none;
+  }
+  .topbar nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+  }
+  .topbar nav a {
+    color: var(--fg-2);
+    font-size: var(--fs-body-sm);
+    font-weight: var(--fw-medium);
+    transition: color var(--dur-fast) var(--ease);
+  }
+  .topbar nav a:hover {
+    color: var(--fg-1);
+    text-decoration: none;
+  }
+  .topbar nav a.active {
+    color: var(--fg-1);
+  }
+  .topbar .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
