@@ -134,3 +134,33 @@ describe("Slice 11 — the diagonal ribbon is river-blue only, never orange", ()
     }
   });
 });
+
+describe("Slice 12 — settings form + controls stay river-blue, never orange", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("keeps orange off the form primitives and settings controls", () => {
+    // The prototype painted the SELECTED radio ring + dot with var(--accent)
+    // (= Crail orange). The locked rule is river-blue for every interactive
+    // accent, so the selected-radio rules below must reference river-blue and
+    // never orange.
+    const surfaces = [
+      ".input",
+      ".input:focus",
+      ".input-mono",
+      ".label",
+      ".help",
+      ".key-reveal",
+      ".radio-card",
+      ".radio-card.is-selected",
+      ".radio-card.is-selected .radio-card-dot",
+      ".radio-card-ring",
+      ".slider-track",
+      ".slider-fill",
+      ".slider-thumb",
+      ".slider-tick",
+    ];
+    for (const selector of surfaces) {
+      expect(ruleBody(selector), `${selector} must not reference orange`).not.toMatch(ORANGE);
+    }
+  });
+});
