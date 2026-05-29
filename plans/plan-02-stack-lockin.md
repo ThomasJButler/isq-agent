@@ -37,7 +37,7 @@ If something here makes you want to change a Plan 1 decision, tell me before we 
 
 ## 1. Repo structure (lock in)
 
-Repo will live at `/Users/tombutler/Repos/isq-agent`. Public GitHub repo. MIT licence (same as Morpheus).
+Repo will live at `~/Repos/isq-agent`. Public GitHub repo. MIT licence (same as Morpheus).
 
 ```
 isq-agent/
@@ -47,7 +47,7 @@ isq-agent/
 ├── .env.example                    # template for required env vars
 ├── docker-compose.yml              # n8n + rag-service + (optional) postgres
 │
-├── plans/                          # this folder — moved in from RiverAICodeAssesmentPlan
+├── plans/                          # this folder — moved in from the planning repo
 │   ├── plan-01-initial-sketch.md
 │   ├── plan-02-stack-lockin.md
 │   └── ...
@@ -602,8 +602,8 @@ Pre-Plan-3 setup tasks. Tick when done.
 - [ ] Create fresh Pinecone project `isq-agent`, create index `isq-agent-knowledge` (1024 dims, cosine, serverless)
 - [ ] Create local repo: `mkdir -p ~/Repos/isq-agent && cd ~/Repos/isq-agent && git init`
 - [ ] Create top-level folders: `mkdir -p plans docs source-corpus n8n/workflows rag-service/app/{api,core,rag,confidence,voyage,utils} rag-service/tests rag-service/scripts eval`
-- [ ] Copy this plans folder into the new repo: `cp -r /Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/*.md ~/Repos/isq-agent/plans/`
-- [ ] Copy source corpus: `cp -r /Users/tombutler/Repos/RiverAICodeAssesmentPlan/projectfilesfromzips/* ~/Repos/isq-agent/source-corpus/`
+- [ ] Copy this plans folder into the new repo: `cp -r plans/*.md ~/Repos/isq-agent/plans/`
+- [ ] Copy source corpus: `cp -r source-corpus/* ~/Repos/isq-agent/source-corpus/`
 - [ ] Make a `.gitignore` excluding `.env`, `__pycache__`, `node_modules`, `source-corpus/` (the corpus is RiverAI's example data, not ours to commit publicly)
 - [ ] Create `.env.example` with template variables: `VOYAGE_API_KEY`, `ANTHROPIC_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX`
 - [ ] First commit: "initial: plans, structure, corpus locally"

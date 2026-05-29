@@ -12,7 +12,7 @@ You're helping me rehearse the demo + walkthrough for the ISQ Agent project — 
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-10-demo-walkthrough.md** (the plan you're executing)
 - **plan-01-initial-sketch.md** Sections 7b (portfolio convergence) + 7c (JobSearch2026 meta-pattern) — the strongest talking points
 - **plan-03-architecture.md** Section 2 (end-to-end Sunflowers walkthrough) — the demo storyline

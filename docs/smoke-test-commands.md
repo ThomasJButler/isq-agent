@@ -20,7 +20,7 @@ curl -s http://localhost:8000/ | python3 -m json.tool
 ## Retrieval + answering (billable)
 
 ```bash
-# A single grounded answer — a real, on-topic question
+# A single grounded answer - a real, on-topic question
 curl -s -X POST http://localhost:8000/answer \
   -H "Content-Type: application/json" \
   -d '{"question":"Do you maintain a formal Information Security Policy?"}' \
@@ -32,7 +32,7 @@ curl -s -X POST http://localhost:8000/answer \
   -d '{"question":"How do you control access to systems and data?"}' \
   | python3 -m json.tool
 
-# A question the corpus does NOT cover — confirms honest flagging
+# A question the corpus does NOT cover - confirms honest flagging
 # (expect a low confidence score + needs_review = true)
 curl -s -X POST http://localhost:8000/answer \
   -H "Content-Type: application/json" \

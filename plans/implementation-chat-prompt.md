@@ -3,7 +3,7 @@
 **Purpose:** Copy-paste this into a fresh Claude chat when you're ready to start building. It briefs the new chat on the full project context so it can hit the ground running without you re-explaining everything.
 
 **How to use:**
-1. Start a new Claude chat with access to your `/Users/tombutler/Repos/` folder
+1. Start a new Claude chat with access to your `~/Repos/` folder
 2. Paste everything below the `---` line as your first message
 3. The new chat will read the plans and start implementing
 
@@ -11,7 +11,7 @@
 
 # ISQ Agent — Implementation Brief
 
-You're picking up an in-progress AI engineering project from Tom Butler. The planning is done (11 plans in `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`). Your job is to help Tom build the system following the plans, the TDD discipline, and the working-style commitments locked in during planning.
+You're picking up an in-progress AI engineering project from Tom Butler. The planning is done (11 plans in `plans/`). Your job is to help Tom build the system following the plans, the TDD discipline, and the working-style commitments locked in during planning.
 
 ## What you're building
 
@@ -33,7 +33,7 @@ The walkthrough is half the deliverable. Architecture, design decisions, failure
 
 ## Project files you must read first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`, read in order:
+In `plans/`, read in order:
 
 1. **plan-01-initial-sketch.md** — Final decisions table at top + JobSearch2026 meta-pattern (Section 7c) + working-style commitments (Section 7d). The whole strategic frame.
 2. **plan-02-stack-lockin.md** — Repo structure, Morpheus lift protocol, Voyage setup, Pinecone setup, n8n Docker, HTTP service contract.
@@ -44,10 +44,10 @@ In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`, read in order:
 7. **plan-07 onwards** — answer generation, confidence scoring, output rendering, walkthrough script, final consolidation. May still be in progress when you start.
 
 You should also reference:
-- `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/taskandemails/AI Engineer Technical Challenge.pdf` — the original brief
-- `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/projectfilesfromzips/` — the source corpus (6 policies, 3 historical ISQs, 3 inbound questionnaires)
-- `/Users/tombutler/Repos/Morpheus/` — Tom's existing RAG product, source of most reusable code
-- `/Users/tombutler/Personal/JobSearch2026/ExperienceLibrary.md` — Tom's portfolio reference
+- `taskandemails/AI Engineer Technical Challenge.pdf` — the original brief
+- `source-corpus/` — the source corpus (6 policies, 3 historical ISQs, 3 inbound questionnaires)
+- `~/Repos/Morpheus/` — Tom's existing RAG product, source of most reusable code
+- `~/Personal/JobSearch2026/ExperienceLibrary.md` — Tom's portfolio reference
 
 ## Working-style commitments (non-negotiable)
 

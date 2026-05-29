@@ -6,7 +6,7 @@
 *.key
 
 # ---------- Source corpus (RiverAI's assessment material) ----------
-source-corpus/
+source-corpus/*
 !source-corpus/README.md
 
 # ---------- Python ----------
@@ -78,5 +78,8 @@ CoachWiggum/
 
 # Personal scratch space (never a deliverable — local entertainment, experiments, etc.)
 scratch/
+
+# Personal study notes (private, never a deliverable)
+learning/
 
 design/design_handoff_isq_agent/designs/prototype-hybrid/pngs

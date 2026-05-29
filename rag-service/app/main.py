@@ -43,7 +43,7 @@ app = FastAPI(
         "Internal service for answering Information Security Questionnaire "
         "questions, grounded in Northstar Labs policies and historical responses."
     ),
-    version="0.1.0",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -72,7 +72,7 @@ async def root():
     """Default route — links to health and docs."""
     return {
         "service": "ISQ Agent RAG Service",
-        "version": "0.1.0",
+        "version": "1.0.0",
         "health": "/health",
         "docs": "/docs",
     }

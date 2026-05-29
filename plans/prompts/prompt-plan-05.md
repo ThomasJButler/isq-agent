@@ -12,7 +12,7 @@ This plan establishes the discipline every subsequent plan inherits — GitHub F
 
 ## Read these first
 
-In `/Users/tombutler/Repos/RiverAICodeAssesmentPlan/plans/`:
+In `plans/`:
 - **plan-05-branching-and-git-workflow.md** (the plan you're executing)
 - **plan-02-stack-lockin.md** (Voyage client wrapper from Exercise 1 — needs backfill tests)
 - **plan-03-architecture.md** (FastAPI main.py from Exercise 2 — needs backfill tests)

@@ -1,6 +1,6 @@
 # Handoff Prompt — Continue ISQ Agent from Plan 6
 
-**Purpose:** Copy-paste everything below the `---` into a fresh Claude Code chat (opened in `/Users/tombutler/Repos/isq-agent`) to continue the project from Plan 6 without re-explaining context. Supersedes `plans/implementation-chat-prompt.md` (which was written pre-build and assumed manual coding exercises Tom no longer does).
+**Purpose:** Copy-paste everything below the `---` into a fresh Claude Code chat (opened in `~/Repos/isq-agent`) to continue the project from Plan 6 without re-explaining context. Supersedes `plans/implementation-chat-prompt.md` (which was written pre-build and assumed manual coding exercises Tom no longer does).
 
 **Snapshot when written:** 2026-05-28. Plans 1–5 complete and merged to `main`. Tag `v0.1.0`. CI green. Next: Plan 6 (question extraction).
 
@@ -8,7 +8,7 @@
 
 # ISQ Agent — Implementation Brief (Plan 6 onward)
 
-You're continuing an in-progress AI engineering project for Tom Butler, in the repo at `/Users/tombutler/Repos/isq-agent` (Claude Code, working tree access). Planning is done; Plans 1–5 are built and merged. Your job: build Plan 6 onward, following the locked TDD + git discipline and Tom's working style.
+You're continuing an in-progress AI engineering project for Tom Butler, in the repo at `~/Repos/isq-agent` (Claude Code, working tree access). Planning is done; Plans 1–5 are built and merged. Your job: build Plan 6 onward, following the locked TDD + git discipline and Tom's working style.
 
 ## What you're building
 

@@ -379,8 +379,8 @@ Morning (9am):
 □ Open Voyage dashboard — confirm API key live
 □ Open Pinecone dashboard — confirm fresh project + index `isq-agent-knowledge` (1024 dims)
 □ Create repo: `mkdir ~/Repos/isq-agent && cd ~/Repos/isq-agent && git init`
-□ Copy plans folder: `cp -r ~/Repos/RiverAICodeAssesmentPlan/plans ~/Repos/isq-agent/`
-□ Copy source corpus: `cp -r ~/Repos/RiverAICodeAssesmentPlan/projectfilesfromzips ~/Repos/isq-agent/source-corpus`
+□ Copy plans folder: `cp -r <planning-repo>/plans ~/Repos/isq-agent/`
+□ Copy source corpus: `cp -r <planning-repo>/projectfilesfromzips ~/Repos/isq-agent/source-corpus`
 □ Create .gitignore, LICENSE, .env.example
 □ Save API keys to .env (not committed)
 □ git commit -m "chore: initial scaffolding"

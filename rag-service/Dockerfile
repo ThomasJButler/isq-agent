@@ -7,8 +7,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps kept minimal — the Python wheels (pypdf, python-docx, reportlab,
-# openpyxl, pinecone, voyageai) are pure-Python or ship manylinux wheels.
+# System deps kept minimal: the Python wheels (pypdf, python-docx, openpyxl,
+# pinecone, voyageai) are pure-Python or ship manylinux wheels.
 
 # Install requirements first so the layer caches unless requirements.txt changes.
 COPY requirements.txt .
