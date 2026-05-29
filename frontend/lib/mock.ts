@@ -25,7 +25,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
   },
   answers: [
     {
-      question_id: 1,
+      question_id: "q1",
       question_text: "Do you maintain a formal Information Security Policy?",
       answer:
         "Yes. Northstar Labs maintains a formal Information Security Policy which is reviewed annually and approved by senior leadership. The policy covers access control, encryption, acceptable use, security responsibilities, asset management, and incident management.",
@@ -50,7 +50,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1240, tokens_out: 95, cost_usd: 0.0042, latency_ms: 1820 },
     },
     {
-      question_id: 2,
+      question_id: "q2",
       question_text:
         "Is multi-factor authentication (MFA) enforced for staff access to business systems?",
       answer:
@@ -76,7 +76,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1280, tokens_out: 78, cost_usd: 0.0039, latency_ms: 1640 },
     },
     {
-      question_id: 3,
+      question_id: "q3",
       question_text: "How frequently are staff awareness training sessions conducted?",
       answer:
         "Information security awareness training is mandatory for all new starters within their first two weeks and is repeated annually for all staff. Phishing simulations are run quarterly with targeted follow-up training for any staff who interact with simulated phishing messages.",
@@ -96,7 +96,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1190, tokens_out: 88, cost_usd: 0.0041, latency_ms: 1720 },
     },
     {
-      question_id: 4,
+      question_id: "q4",
       question_text: "Do you encrypt customer data at rest and in transit?",
       answer:
         "All customer data is encrypted at rest using AES-256 and in transit using TLS 1.3. Encryption keys are managed via the cloud provider's managed KMS with quarterly rotation. No customer data is stored unencrypted at any point in the lifecycle.",
@@ -124,7 +124,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1330, tokens_out: 91, cost_usd: 0.0044, latency_ms: 1810 },
     },
     {
-      question_id: 5,
+      question_id: "q5",
       question_text: "Are penetration tests conducted on customer-facing systems, and how often?",
       answer:
         "External penetration tests are conducted annually by a CREST-accredited third party. Internal vulnerability scans run weekly across all customer-facing systems. The most recent external test was completed in Q1 2026; findings and remediation evidence are available under NDA.",
@@ -149,7 +149,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1310, tokens_out: 102, cost_usd: 0.0046, latency_ms: 1880 },
     },
     {
-      question_id: 6,
+      question_id: "q6",
       question_text: "How is privileged access to operational technology (OT) controlled?",
       answer:
         "Northstar Labs does not operate operational technology (OT) systems. Our services are software-only: cloud-hosted applications and AI engineering work. Privileged access to our software development and production environments is controlled via short-lived credentials, just-in-time access via SSO, and full audit logging.",
@@ -170,7 +170,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1180, tokens_out: 124, cost_usd: 0.0051, latency_ms: 2140 },
     },
     {
-      question_id: 7,
+      question_id: "q7",
       question_text: "Do you have a documented incident response plan?",
       answer:
         "Yes. Northstar Labs maintains a documented Incident Response Plan covering identification, containment, eradication, recovery, and post-incident review. The plan is reviewed annually and tested via tabletop exercises twice per year. The Information Security Lead is the named incident commander.",
@@ -194,7 +194,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1220, tokens_out: 102, cost_usd: 0.0044, latency_ms: 1750 },
     },
     {
-      question_id: 8,
+      question_id: "q8",
       question_text:
         "What is your maximum acceptable time to notify customers of a confirmed data breach?",
       answer:
@@ -219,7 +219,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1290, tokens_out: 116, cost_usd: 0.0049, latency_ms: 1900 },
     },
     {
-      question_id: 9,
+      question_id: "q9",
       question_text: "How are third-party suppliers and sub-processors assessed?",
       answer:
         "Third-party suppliers and sub-processors are assessed via a structured due-diligence questionnaire covering security, data handling, and certifications. Critical suppliers are reviewed annually. A current list of sub-processors is maintained and available to customers on request under NDA.",
@@ -239,7 +239,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1170, tokens_out: 89, cost_usd: 0.004, latency_ms: 1680 },
     },
     {
-      question_id: 10,
+      question_id: "q10",
       question_text: "Where is customer data physically stored?",
       answer:
         "Customer data is stored in UK and EU data centres operated by our cloud provider. Production data does not leave the UK/EU region under normal operation. Disaster-recovery replicas are maintained within the same legal jurisdiction.",
@@ -263,7 +263,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1210, tokens_out: 81, cost_usd: 0.0041, latency_ms: 1700 },
     },
     {
-      question_id: 11,
+      question_id: "q11",
       question_text:
         "What are your Recovery Time Objective (RTO) and Recovery Point Objective (RPO) for critical SCADA-connected services?",
       answer:
@@ -284,7 +284,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1240, tokens_out: 134, cost_usd: 0.0054, latency_ms: 2230 },
     },
     {
-      question_id: 12,
+      question_id: "q12",
       question_text:
         "Do you maintain audit logs for privileged actions, and how long are they retained?",
       answer:
@@ -309,7 +309,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1260, tokens_out: 92, cost_usd: 0.0043, latency_ms: 1770 },
     },
     {
-      question_id: 13,
+      question_id: "q13",
       question_text: "Do staff sign a confidentiality agreement before accessing customer data?",
       answer:
         "Yes. All staff sign a confidentiality and data protection agreement as part of their employment contract before accessing any customer data. Contractors sign an equivalent agreement before being granted access.",
@@ -329,7 +329,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1150, tokens_out: 72, cost_usd: 0.0037, latency_ms: 1590 },
     },
     {
-      question_id: 14,
+      question_id: "q14",
       question_text: "How are vulnerabilities in dependencies identified and remediated?",
       answer:
         "Dependency vulnerabilities are identified via automated scanning on every commit and on a daily schedule. Critical severity issues are remediated within 7 days; high severity within 30 days. The dependency policy and SLA are published internally.",
@@ -353,7 +353,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1220, tokens_out: 87, cost_usd: 0.0041, latency_ms: 1730 },
     },
     {
-      question_id: 15,
+      question_id: "q15",
       question_text: "Is there a documented data retention and disposal policy?",
       answer:
         "Yes. Northstar Labs maintains a documented Data Retention and Disposal Policy. Customer data is retained for the duration of the contract and for a defined post-termination period before secure deletion. Disposal evidence is logged.",
@@ -372,7 +372,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1180, tokens_out: 78, cost_usd: 0.0038, latency_ms: 1620 },
     },
     {
-      question_id: 16,
+      question_id: "q16",
       question_text: "Do you have cyber insurance, and what is the coverage limit?",
       answer:
         "Northstar Labs maintains cyber insurance with a coverage limit appropriate to the scale of customer engagements. Specific policy limits and certificates of insurance are available to customers under NDA on request.",
@@ -392,7 +392,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1130, tokens_out: 70, cost_usd: 0.0036, latency_ms: 1580 },
     },
     {
-      question_id: 17,
+      question_id: "q17",
       question_text: "Are background checks performed on staff with access to customer data?",
       answer:
         "Yes. All staff with access to customer data undergo background checks proportionate to the sensitivity of their role, including identity verification, right-to-work checks, and where appropriate criminal record checks. Checks are repeated for role changes.",
@@ -412,7 +412,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1180, tokens_out: 82, cost_usd: 0.0039, latency_ms: 1650 },
     },
     {
-      question_id: 18,
+      question_id: "q18",
       question_text: "What is the process for revoking access when staff leave?",
       answer:
         "On termination, access to all systems is revoked within one business hour of the effective end date via the central identity provider. Devices are recovered, encryption keys rotated, and the offboarding checklist is signed off by the Information Security Lead.",
@@ -435,7 +435,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1220, tokens_out: 89, cost_usd: 0.0042, latency_ms: 1740 },
     },
     {
-      question_id: 19,
+      question_id: "q19",
       question_text: "Do you maintain audit logs sufficient to support forensic investigation?",
       answer:
         "Yes. Audit logs across application, infrastructure, and access events are centrally aggregated with sufficient detail and retention to support forensic investigation. Logs are protected against tampering and segregated from operational access.",
@@ -460,7 +460,7 @@ export const MOCK_ENVELOPE: CanonicalEnvelope = {
       metrics: { tokens_in: 1240, tokens_out: 84, cost_usd: 0.004, latency_ms: 1690 },
     },
     {
-      question_id: 20,
+      question_id: "q20",
       question_text:
         "Please provide details of any relevant certifications or compliance frameworks followed by your organisation.",
       answer:

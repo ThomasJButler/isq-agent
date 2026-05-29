@@ -22,7 +22,7 @@ function makeEnvelope(): CanonicalEnvelope {
     },
     answers: [
       {
-        question_id: 1,
+        question_id: "q1",
         question_text: "Do you maintain a formal Information Security Policy?",
         answer: "Yes. Reviewed annually and approved by senior leadership.",
         citations: [
@@ -38,7 +38,7 @@ function makeEnvelope(): CanonicalEnvelope {
         metrics: { tokens_in: 1240, tokens_out: 95, cost_usd: 0.0042, latency_ms: 1820 },
       },
       {
-        question_id: 2,
+        question_id: "q2",
         question_text: "How is privileged access to operational technology controlled?",
         answer: "Northstar Labs does not operate operational technology systems.",
         citations: [{ source_id: "ISP §1", text_snippet: "Software only." }],
@@ -51,7 +51,7 @@ function makeEnvelope(): CanonicalEnvelope {
         metrics: { tokens_in: 1180, tokens_out: 124, cost_usd: 0.0051, latency_ms: 2140 },
       },
       {
-        question_id: 3,
+        question_id: "q3",
         question_text: "Describe your SCADA recovery objectives.",
         answer: "",
         citations: [],
@@ -118,7 +118,7 @@ describe("toRunViewModel — summary", () => {
 describe("toRunViewModel — answers", () => {
   it("renames question_text to question and keeps answer + metrics", () => {
     const a = toRunViewModel(makeEnvelope()).answers[0];
-    expect(a.index).toBe(1); // question_id
+    expect(a.index).toBe(1); // 1-based position
     expect(a.question).toBe("Do you maintain a formal Information Security Policy?");
     expect(a.metrics.tokens_in).toBe(1240);
   });

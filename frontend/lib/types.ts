@@ -41,7 +41,7 @@ export interface AnswerMetrics {
 }
 
 export interface CanonicalAnswer {
-  question_id: number;
+  question_id: string | null;
   question_text: string;
   answer: string;
   citations: CanonicalCitation[];

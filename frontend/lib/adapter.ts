@@ -39,7 +39,7 @@ function toCitationViewModel(citation: CanonicalAnswer["citations"][number]): Ci
   return { id: citation.source_id, snippet: citation.text_snippet };
 }
 
-function toAnswerViewModel(answer: CanonicalAnswer): AnswerViewModel {
+function toAnswerViewModel(answer: CanonicalAnswer, position: number): AnswerViewModel {
   const { confidence } = answer;
   const failed = confidence === null;
 
@@ -48,7 +48,10 @@ function toAnswerViewModel(answer: CanonicalAnswer): AnswerViewModel {
     : null;
 
   return {
-    index: answer.question_id,
+    // 1-based ordinal from the answer's position. The backend's question_id is a
+    // string identifier (e.g. "sun-q01"), not a row number, so the display index
+    // is derived from order rather than the id.
+    index: position + 1,
     question: answer.question_text,
     answer: answer.answer,
     citations: answer.citations.map(toCitationViewModel),
@@ -110,7 +113,7 @@ export function toRunViewModel(canonical: CanonicalEnvelope): RunViewModel {
       average_confidence: summary.average_confidence,
       banner: summary.banner,
     },
-    answers: answers.map(toAnswerViewModel),
+    answers: answers.map((answer, i) => toAnswerViewModel(answer, i)),
     top_citations: deriveTopCitations(answers),
   };
 }
