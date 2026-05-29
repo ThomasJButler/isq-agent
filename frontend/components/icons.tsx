@@ -11,6 +11,10 @@ import type { JSX, ReactNode, SVGProps } from "react";
 // path data. eye / eyeOff have no prototype original (the prototype showed keys
 // pre-masked with no reveal control); they are drawn in the same stroke style to
 // power the masked-key reveal toggle Slice 12 needs.
+//
+// arrowRight / arrowDown / upload / search / download / warning (Slice 13) are
+// the prototype's exact path data too — the Landing screen's hero CTAs, the
+// three "how it works" step glyphs, and the snapshot's flagged badge.
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "ref"> {
   /** Square size in pixels (default 16). */
@@ -117,6 +121,63 @@ export function EyeOffIcon(props: IconProps): JSX.Element {
       <path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" />
       <path d="M9.4 5.1A9.4 9.4 0 0 1 12 5c6.5 0 10 7 10 7a17.8 17.8 0 0 1-3.1 3.9" />
       <path d="M6.3 6.3A17.7 17.7 0 0 0 2 12s3.5 7 10 7a9.3 9.3 0 0 0 3.2-.6" />
+    </Icon>
+  );
+}
+
+export function ArrowRightIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M5 12h14" />
+      <path d="M13 5l7 7-7 7" />
+    </Icon>
+  );
+}
+
+export function ArrowDownIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 5v14" />
+      <path d="M5 13l7 7 7-7" />
+    </Icon>
+  );
+}
+
+export function UploadIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v12" />
+      <path d="M7 8l5-5 5 5" />
+      <path d="M5 21h14" />
+    </Icon>
+  );
+}
+
+export function SearchIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </Icon>
+  );
+}
+
+export function DownloadIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M12 3v12" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M5 21h14" />
+    </Icon>
+  );
+}
+
+export function WarningIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
     </Icon>
   );
 }

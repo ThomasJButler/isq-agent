@@ -266,6 +266,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Calm scroll for in-page anchors — the Landing "How it works" CTA jumps to
+       #how-it-works. Disabled under prefers-reduced-motion below. */
+    scroll-behavior: smooth;
   }
 
   button {
@@ -303,6 +306,10 @@
     *::after {
       transition-duration: 0ms !important;
       animation-duration: 0ms !important;
+    }
+    html,
+    body {
+      scroll-behavior: auto;
     }
   }
 
@@ -680,6 +687,18 @@
      this (as will the Stat / Footer / Dropzone meta rows in later slices). */
   .muted {
     color: var(--fg-3);
+  }
+
+  /* —— Eyebrow — a small uppercase section label (Landing hero + "how it works",
+     reusable by later screens). Coloured var(--river-blue): it's non-interactive,
+     but river-blue is the design's single accent, so this is on-system, not the
+     Crail-orange leak the orange-isolation guard watches for. —— */
+  .eyebrow {
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--ls-wide);
+    text-transform: uppercase;
+    color: var(--river-blue);
   }
 
   /* —— Dropzone — dashed upload zone; river-blue dragging, danger error —— */
