@@ -1,16 +1,18 @@
 """
-XLSX overlay renderer (Plan 9).
+XLSX renderer (Plan 9, extended in Plan 10).
 
-Unlike the typeset DOCX renderer, this OVERLAYS the canonical answers onto a copy of
-the original questionnaire: it opens the source workbook, finds the Response column,
-and writes each answer into the matching row. Flagged answers get a yellow fill + a
-[REVIEW] prefix so a reviewer spots them at a glance. A second "Summary" sheet carries
-the run summary (and a run-level banner when every answer is flagged or every one failed).
+Has two paths, chosen by whether a source workbook is given:
 
-Overlay needs the original file, so render_xlsx takes a third arg (source_path) the
-typeset renderers don't. Answers map to data rows by position — both are 1-based
-ordinals from the same extraction pass, in order. The source file is never mutated:
-we load it, populate in memory, and save to output_path.
+- Overlay (source_path supplied): open a copy of the original questionnaire, find the
+  Response column, and write each answer into the matching row. Answers map to data rows
+  by position; both are 1-based ordinals from the same extraction pass, in order. The
+  source file is never mutated: it is loaded, populated in memory, and saved to output_path.
+- Standalone (source_path None): build a fresh workbook, one row per question. Used for PDF
+  inputs, which have no source workbook to overlay onto.
+
+In both paths flagged answers get a yellow fill + a [REVIEW] prefix so a reviewer spots them
+at a glance, and a second "Summary" sheet carries the run summary (and a run-level banner
+when every answer is flagged or every one failed).
 """
 
 from openpyxl import Workbook, load_workbook
@@ -63,22 +65,31 @@ def render_xlsx(
 
 
 def _build_standalone_workbook(answers: list[dict]) -> Workbook:
-    """Build a fresh workbook (one row per question) when there's no source to overlay onto."""
+    """Build a fresh workbook (one row per question) when there's no source to overlay onto.
+
+    Flagged answers get the same [REVIEW] prefix + yellow fill as the overlay path, so a
+    reviewer spots them at a glance whatever the input format was.
+    """
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "Responses"
     sheet.append(["#", "Question", "Answer", "Needs review", "Review reason"])
+    answer_col = 3  # ["#", "Question", "Answer", ...]
     for position, ans in enumerate(answers, start=1):
         confidence = ans.get("confidence") or {}
+        flagged = bool(confidence.get("needs_review"))
+        text = ans.get("answer", "")
         sheet.append(
             [
                 position,
                 ans.get("question_text", ""),
-                ans.get("answer", ""),
-                "yes" if confidence.get("needs_review") else "no",
+                f"{XLSX_REVIEW_PREFIX}{text}" if flagged else text,
+                "yes" if flagged else "no",
                 confidence.get("review_reason") or "",
             ]
         )
+        if flagged:
+            sheet.cell(row=sheet.max_row, column=answer_col).fill = _FLAGGED_FILL
     return workbook
 
 

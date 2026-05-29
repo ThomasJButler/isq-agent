@@ -6,7 +6,11 @@ source, so it must build a fresh workbook from the envelope instead.
 
 from openpyxl import load_workbook
 
-from app.render.render_xlsx import render_xlsx
+from app.render.render_xlsx import (
+    XLSX_FLAGGED_FILL,
+    XLSX_REVIEW_PREFIX,
+    render_xlsx,
+)
 
 
 def _envelope():
@@ -47,6 +51,15 @@ def _envelope():
     }
 
 
+def _flagged_envelope():
+    env = _envelope()
+    answer = env["answers"][0]
+    answer["confidence"]["needs_review"] = True
+    answer["confidence"]["review_reason"] = "Scope mismatch — needs a human."
+    env["summary_metrics"]["questions_flagged_for_review"] = 1
+    return env
+
+
 def test_render_xlsx_standalone_without_source(tmp_path):
     out = tmp_path / "standalone.xlsx"
     result = render_xlsx(_envelope(), str(out))  # no source_path -> standalone
@@ -63,3 +76,15 @@ def test_render_xlsx_standalone_without_source(tmp_path):
     )
     assert "Do you encrypt data at rest?" in blob
     assert "AES-256" in blob
+
+
+def test_render_xlsx_standalone_styles_flagged_answer(tmp_path):
+    """A flagged answer in the standalone path gets the same [REVIEW] prefix + yellow
+    fill as the overlay path, so flagged answers stand out regardless of input format."""
+    out = tmp_path / "flagged.xlsx"
+    render_xlsx(_flagged_envelope(), str(out))
+
+    sheet = load_workbook(str(out))["Responses"]
+    answer_cell = sheet.cell(row=2, column=3)  # row 2 = first data row, col 3 = Answer
+    assert answer_cell.value.startswith(XLSX_REVIEW_PREFIX)
+    assert answer_cell.fill.start_color.rgb.endswith(XLSX_FLAGGED_FILL)
