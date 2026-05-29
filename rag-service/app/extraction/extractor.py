@@ -22,6 +22,7 @@ from typing import Any
 from anthropic import Anthropic
 
 from app.core.config import settings
+from app.core.llm import create_message
 from app.core.isq_prompts import (
     EXTRACT_QUESTIONS_TOOL,
     EXTRACTION_SYSTEM_PROMPT,
@@ -97,7 +98,8 @@ class QuestionExtractor:
             return self._result([], ["no_questions_detected"], 0, 0, 0.0)
 
         start = time.perf_counter()
-        response = self.client.messages.create(
+        response = create_message(
+            self.client,
             model=self.model,
             max_tokens=self.MAX_TOKENS,
             temperature=0,  # deterministic extraction
