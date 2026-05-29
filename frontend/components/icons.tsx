@@ -21,6 +21,9 @@ import type { JSX, ReactNode, SVGProps } from "react";
 //
 // hash / zap / clock (Slice 15) are the prototype's exact path data — the
 // Processing screen's "Answered", "Est. cost", and "Elapsed" counter tiles.
+//
+// fileDocx / fileXlsx / fileJson / copy (Slice 16) are the prototype's exact path
+// data — the Results screen's three download buttons + the "Copy link" affordance.
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "ref"> {
   /** Square size in pixels (default 16). */
@@ -238,6 +241,46 @@ export function ClockIcon(props: IconProps): JSX.Element {
     <Icon {...props}>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
+    </Icon>
+  );
+}
+
+export function FileDocxIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6M9 17h4" />
+    </Icon>
+  );
+}
+
+export function FileXlsxIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13l5 5M14 13l-5 5" />
+    </Icon>
+  );
+}
+
+export function FileJsonIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="M11 12c-1 0-1.5.5-1.5 1.5v1c0 1-.5 1.5-1.5 1.5 1 0 1.5.5 1.5 1.5v1c0 1 .5 1.5 1.5 1.5" />
+      <path d="M13 12c1 0 1.5.5 1.5 1.5v1c0 1 .5 1.5 1.5 1.5-1 0-1.5.5-1.5 1.5v1c0 1-.5 1.5-1.5 1.5" />
+    </Icon>
+  );
+}
+
+export function CopyIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </Icon>
   );
 }
