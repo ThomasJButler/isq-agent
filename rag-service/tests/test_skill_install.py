@@ -169,6 +169,30 @@ def test_process_isq_rejects_unsupported_format(tmp_path):
     assert pi.main([str(bad)]) == 1
 
 
+# reindex_corpus.py
+
+
+def test_reindex_corpus_forces_reindex_and_returns_0(monkeypatch):
+    ri = _load_script("reindex_corpus.py")
+    httpx = Mock()
+    resp = Mock()
+    resp.raise_for_status = Mock()
+    resp.json = Mock(return_value={"status": "indexed", "chunks_indexed": 70})
+    httpx.post = Mock(return_value=resp)
+    monkeypatch.setattr(ri, "httpx", httpx)
+    assert ri.main() == 0
+    _, kwargs = httpx.post.call_args
+    assert kwargs["json"] == {"force_reindex": True}
+
+
+def test_reindex_corpus_returns_1_on_failure(monkeypatch):
+    ri = _load_script("reindex_corpus.py")
+    httpx = Mock()
+    httpx.post = Mock(side_effect=RuntimeError("connection refused"))
+    monkeypatch.setattr(ri, "httpx", httpx)
+    assert ri.main() == 1
+
+
 # packaging
 
 
