@@ -115,3 +115,22 @@ describe("Slice 10 — orange stays off the tabs, timeline + progress CSS", () =
     }
   });
 });
+
+describe("Slice 11 — the diagonal ribbon is river-blue only, never orange", () => {
+  const ORANGE = /claude-orange|#cc785c/i;
+
+  it("keeps orange off every ribbon rule (the fills are blue gradients)", () => {
+    const surfaces = [
+      ".river-ribbon",
+      ".river-ribbon-content",
+      ".river-ribbon-fill",
+      ".river-ribbon-fill-1",
+      ".river-ribbon-fill-2",
+      ".river-ribbon.subtle .river-ribbon-fill-1",
+      ".river-ribbon.subtle .river-ribbon-fill-2",
+    ];
+    for (const selector of surfaces) {
+      expect(ruleBody(selector), `${selector} must not reference orange`).not.toMatch(ORANGE);
+    }
+  });
+});
