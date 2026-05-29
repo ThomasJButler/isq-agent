@@ -15,6 +15,9 @@ import type { JSX, ReactNode, SVGProps } from "react";
 // arrowRight / arrowDown / upload / search / download / warning (Slice 13) are
 // the prototype's exact path data too — the Landing screen's hero CTAs, the
 // three "how it works" step glyphs, and the snapshot's flagged badge.
+//
+// file / email / x (Slice 14) are the prototype's exact path data — the /upload
+// example shortcuts, the "Or send to" inbox helper, and the ErrorBanner dismiss.
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, "ref"> {
   /** Square size in pixels (default 16). */
@@ -178,6 +181,32 @@ export function WarningIcon(props: IconProps): JSX.Element {
       <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
+    </Icon>
+  );
+}
+
+export function FileIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </Icon>
+  );
+}
+
+export function EmailIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </Icon>
+  );
+}
+
+export function XIcon(props: IconProps): JSX.Element {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l12 12M18 6L6 18" />
     </Icon>
   );
 }

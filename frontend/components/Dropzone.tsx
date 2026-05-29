@@ -21,10 +21,21 @@ import { ACCEPTED_EXTENSIONS, validateUpload } from "@/lib/validate";
 // guard. The selected-file panel reuses Slice 8's <Card> and the Remove control
 // is the Slice 7 ghost <Button>. The visual states (dashed zone, dragging/error
 // borders) live in the .dropzone CSS, covered by `npm run build`, not jsdom.
+// The minimal slice of a file the selected-file panel displays: name, size, and
+// an optional MIME type. A real browser File satisfies it (so picks/drops pass
+// through unchanged and the Slice 9 tests stay green), but it also lets a screen
+// hand the zone a lightweight descriptor — e.g. /upload's example shortcuts,
+// which can't allocate a real 8 MB File. Mirrors Slice 5's UploadFile precedent.
+export interface SelectedFile {
+  name: string;
+  size: number;
+  type?: string;
+}
+
 interface DropzoneProps {
   /** The currently selected file, or null for the empty prompt. Parent-owned. */
-  file: File | null;
-  /** Called with a file that passed validateUpload. */
+  file: SelectedFile | null;
+  /** Called with a file that passed validateUpload (always a real browser File). */
   onFile: (file: File) => void;
   /** Called when the selected file is cleared. */
   onRemove: () => void;
