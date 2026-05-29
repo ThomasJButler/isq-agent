@@ -9,7 +9,7 @@ estimate. Where I quote a flagged reason, it's the exact text the system produce
 
 ---
 
-## Section 1 — Opener (about 90 seconds)
+## Section 1: Opener (about 90 seconds)
 
 > "Thanks for having me back. I'll spend about 12 minutes walking through what I built, then we
 > can get into questions.
@@ -31,7 +31,7 @@ Timing: about 90 seconds. Steady, no rushing.
 
 ---
 
-## Section 2 — Live demo, the happy path (about 3 minutes)
+## Section 2: Live demo, the happy path (about 3 minutes)
 
 > "Right, let me show you it running. This is the Sunflowers Charity questionnaire from the
 > brief, a PDF."
@@ -68,7 +68,7 @@ Timing: about 3 minutes. The show-don't-tell half.
 
 ---
 
-## Section 3 — The Blackridge edge case (about 90 seconds)
+## Section 3: The Blackridge edge case (about 90 seconds)
 
 > "Second one, and this is the interesting one. Blackridge are a wind-energy supplier. Their
 > questionnaire asks a lot about operational technology, the industrial control side. The thing
@@ -96,7 +96,7 @@ Timing: about 90 seconds. The honest-engineering card, and the strongest one.
 
 ---
 
-## Section 4 — Architecture, why it's built this way (about 3 minutes)
+## Section 4: Architecture, why it's built this way (about 3 minutes)
 
 > "Let me show you why it's shaped the way it is."
 
@@ -133,7 +133,7 @@ Timing: about 3 minutes. The architecture story plus the proof it's drawn from r
 
 ---
 
-## Section 5 — Cross-system observability (about 1 minute)
+## Section 5: Cross-system observability (about 1 minute)
 
 > "One production detail worth showing, because it's the kind of thing that matters when
 > something goes wrong at 2am."
@@ -149,7 +149,7 @@ Timing: about 1 minute.
 
 ---
 
-## Section 6 — The Claude Code skill (about 1 minute)
+## Section 6: The Claude Code skill (about 1 minute)
 
 > "Last thing before questions, and this is the bit no other candidate will have. The same
 > engine is packaged as a Claude Code skill. So instead of the n8n form, I can sit in a Claude
@@ -163,7 +163,7 @@ Timing: about 1 minute.
 
 ---
 
-## Section 7 — What I'd do with more time (about 2 minutes)
+## Section 7: What I'd do with more time (about 2 minutes)
 
 > "You asked for an honest 'next steps' list, so here it is:
 >
@@ -190,7 +190,7 @@ Timing: about 2 minutes. The senior-thinking signal.
 
 ---
 
-## Section 8 — Close (about 30 seconds)
+## Section 8: Close (about 30 seconds)
 
 > "That's the walkthrough. The whole thing is on GitHub, public. There's the README, the
 > planning folder with every iteration I went through before writing a line of code, the test
