@@ -63,14 +63,14 @@ fi
 
 case "$MODE" in
   plan)
-    PROMPT_FILE="PROMPT_plan.md"
+    PROMPT_FILE="ralph/PROMPT_plan.md"
     ;;
   build)
-    PROMPT_FILE="PROMPT_build.md"
+    PROMPT_FILE="ralph/PROMPT_build.md"
     ;;
   *)
     if [[ "$MODE" =~ ^[0-9]+$ ]]; then
-      PROMPT_FILE="PROMPT_build.md"
+      PROMPT_FILE="ralph/PROMPT_build.md"
       MAX_ITERATIONS="$MODE"
       MODE="build"
     else
@@ -97,9 +97,9 @@ EXTRACTOR="scripts/extract_claude_final.py"
 OVERLAY_PROMPT_FILE=""
 
 if [[ "$EXPLAIN_MODE" == "coach" ]]; then
-  OVERLAY_PROMPT_FILE="PROMPT_coach.md"
+  OVERLAY_PROMPT_FILE="ralph/PROMPT_coach.md"
 elif [[ "$EXPLAIN_MODE" == "homer" ]]; then
-  OVERLAY_PROMPT_FILE="PROMPT_homer.md"
+  OVERLAY_PROMPT_FILE="ralph/PROMPT_homer.md"
 fi
 
 ITERATION=0
