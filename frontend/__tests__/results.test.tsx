@@ -45,7 +45,9 @@ describe("ResultsPage — header + deliverables", () => {
   it("shows the answered + cost mini-stats from the view model", () => {
     render(<ResultsPage />);
     expect(screen.getByText("18/20")).toBeInTheDocument(); // 20 total - 2 flagged
-    expect(screen.getByText("$0.078")).toBeInTheDocument(); // formatCurrency(total_cost_usd)
+    // $0.078 = formatCurrency(total_cost_usd); shown in both the header summary
+    // line and the deliverables "Total cost" mini-stat.
+    expect(screen.getAllByText("$0.078").length).toBeGreaterThan(0);
   });
 });
 
@@ -84,7 +86,9 @@ describe("ResultsPage — tabs", () => {
       screen.getByText("Do you maintain a formal Information Security Policy?"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Is multi-factor authentication (MFA) enforced for staff access to business systems?"),
+      screen.getByText(
+        "Is multi-factor authentication (MFA) enforced for staff access to business systems?",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -102,7 +106,9 @@ describe("ResultsPage — tabs", () => {
     ).toBeInTheDocument();
     // ...a clean answer is filtered out.
     expect(
-      screen.queryByText("Is multi-factor authentication (MFA) enforced for staff access to business systems?"),
+      screen.queryByText(
+        "Is multi-factor authentication (MFA) enforced for staff access to business systems?",
+      ),
     ).not.toBeInTheDocument();
   });
 
