@@ -7,6 +7,7 @@ rendered deliverables over HTTP. This endpoint takes the canonical envelope (the
 
 import io
 import json
+import os
 
 from fastapi.testclient import TestClient
 from openpyxl import Workbook, load_workbook
@@ -152,3 +153,23 @@ def test_render_rejects_unknown_format():
 def test_render_rejects_malformed_envelope():
     resp = client.post("/render", data={"format": "json", "envelope": "{not json"})
     assert resp.status_code in (400, 422)
+
+
+def test_render_cleans_up_tempdir(monkeypatch):
+    """Each render must not leak its temp directory once the response is served."""
+    import app.api.render as render_mod
+
+    created: list[str] = []
+    real_mkdtemp = render_mod.tempfile.mkdtemp
+
+    def tracking_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        created.append(path)
+        return path
+
+    monkeypatch.setattr(render_mod.tempfile, "mkdtemp", tracking_mkdtemp)
+    resp = _render("json")
+    assert resp.status_code == 200
+    assert created, "expected the endpoint to create a temp directory"
+    for path in created:
+        assert not os.path.exists(path), f"temp directory leaked: {path}"

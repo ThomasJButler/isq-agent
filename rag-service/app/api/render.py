@@ -7,11 +7,13 @@ when one is supplied; without a source a standalone workbook is produced.
 """
 
 import json
+import shutil
 import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 
 from app.render.render_docx import render_docx
 from app.render.render_json import render_json
@@ -68,4 +70,11 @@ async def render(
                 fh.write(await source.read())
         render_xlsx(canonical, str(out_path), source_path)
 
-    return FileResponse(path=str(out_path), media_type=media_type, filename=filename)
+    # FileResponse streams the file after the handler returns, so the temp dir can only be
+    # removed once the response has been sent — hence a background task, not an inline rmtree.
+    return FileResponse(
+        path=str(out_path),
+        media_type=media_type,
+        filename=filename,
+        background=BackgroundTask(shutil.rmtree, tmp_dir, ignore_errors=True),
+    )
