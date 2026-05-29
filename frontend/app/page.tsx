@@ -308,10 +308,10 @@ export default function Home() {
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>
               Grounded, not generative.
             </div>
-            <div className="muted" style={{ fontSize: 13 }}>
+            <div className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>
               Every answer cites the policy chunks it was drawn from. Low-confidence or out-of-scope
               answers are flagged, not hidden.
             </div>
@@ -322,23 +322,23 @@ export default function Home() {
               alignItems: "center",
               gap: "var(--space-6)",
               ...MONO,
-              fontSize: 12,
+              fontSize: 14,
             }}
           >
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Median cost / ISQ
               </div>
               <div style={{ fontWeight: 600 }}>$0.08</div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Median time
               </div>
               <div style={{ fontWeight: 600 }}>42s</div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Flag rate
               </div>
               <div style={{ fontWeight: 600 }}>~10%</div>
