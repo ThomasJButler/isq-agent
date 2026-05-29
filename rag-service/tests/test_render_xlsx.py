@@ -231,6 +231,21 @@ class TestRenderXlsx:
         ).upper()
         assert "ALL ANSWERS FLAGGED" in text
 
+    def test_all_failed_banner_in_summary(self, source_xlsx, tmp_path):
+        """An all_failed run writes its own banner headline into the Summary sheet."""
+        canonical = _canonical(
+            [_answer("Q?", "generation failed", needs_review=True, score=0.0)],
+            banner="all_failed",
+            flagged=1,
+        )
+        out = tmp_path / "out.xlsx"
+        render_xlsx(canonical, str(out), source_xlsx)
+        ws = load_workbook(str(out))["Summary"]
+        text = "\n".join(
+            str(c.value) for row in ws.iter_rows() for c in row if c.value is not None
+        ).upper()
+        assert "ALL ANSWERS FAILED" in text
+
     def test_no_matrix_terminology_in_output(
         self, canonical_three, source_xlsx, tmp_path
     ):

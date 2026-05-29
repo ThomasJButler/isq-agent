@@ -30,6 +30,11 @@ ALL_FLAGGED_BODY = (
     "The knowledge base may not cover this questionnaire's domain. "
     "Consider whether the source corpus needs extending for this requester."
 )
+ALL_FAILED_HEADLINE = "⚠ ALL ANSWERS FAILED TO GENERATE"
+ALL_FAILED_BODY = (
+    "Every question's answer generation failed. Check the rag-service and its upstream "
+    "APIs are reachable, then re-run this questionnaire."
+)
 
 
 def format_currency(value: float) -> str:

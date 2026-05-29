@@ -208,6 +208,14 @@ class TestRenderDocx:
         render_docx(canonical_with_flagged_answer, str(output))
         assert "ALL ANSWERS FLAGGED" in _body_text(output).upper()
 
+    def test_all_failed_banner_present(self, canonical_with_flagged_answer, tmp_path):
+        """An all_failed run renders its own banner, not just the all_flagged one."""
+        canonical = canonical_with_flagged_answer
+        canonical["summary_metrics"]["banner"] = "all_failed"
+        output = tmp_path / "all_failed.docx"
+        render_docx(canonical, str(output))
+        assert "ALL ANSWERS FAILED" in _body_text(output).upper()
+
     def test_no_banner_when_not_all_flagged(self, canonical_one_answer, tmp_path):
         """No banner when summary_metrics.banner is None."""
         output = tmp_path / "no_banner.docx"

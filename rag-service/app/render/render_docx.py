@@ -3,8 +3,9 @@ DOCX renderer (Plan 9) — typeset compliance report from the canonical envelope
 
 Consumes the canonical envelope ({questionnaire_meta, answers, summary_metrics}) and
 typesets a clean Northstar Labs response document: a title block, a summary table, an
-optional all-flagged banner, then one block per question/answer with flagged answers
-carrying a [REVIEW] badge + review reason. Style constants live in app.render.shared.
+optional run-level banner (all-flagged or all-failed), then one block per question/answer
+with flagged answers carrying a [REVIEW] badge + review reason. Style constants live in
+app.render.shared.
 
 python-docx note: only body paragraphs (doc.add_paragraph) are visible to readers
 scanning doc.paragraphs — text inside tables/headers is not. So the asserted content
@@ -16,6 +17,8 @@ from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from app.render.shared import (
+    ALL_FAILED_BODY,
+    ALL_FAILED_HEADLINE,
     ALL_FLAGGED_BODY,
     ALL_FLAGGED_HEADLINE,
     GREY_CITATION,
@@ -41,7 +44,9 @@ def render_docx(canonical: dict, output_path: str) -> str:
     _add_title(doc, meta)
     _add_summary_table(doc, meta, summary)
     if summary.get("banner") == "all_flagged":
-        _add_all_flagged_banner(doc)
+        _add_banner(doc, ALL_FLAGGED_HEADLINE, ALL_FLAGGED_BODY)
+    elif summary.get("banner") == "all_failed":
+        _add_banner(doc, ALL_FAILED_HEADLINE, ALL_FAILED_BODY)
     _add_answers(doc, answers)
 
     doc.save(output_path)
@@ -99,18 +104,16 @@ def _add_summary_table(doc, meta: dict, summary: dict) -> None:
             style_run(cell.paragraphs[0].add_run(text), bold=col_idx == 0)
 
 
-def _add_all_flagged_banner(doc) -> None:
-    """All-flagged banner as body paragraphs (visible to doc.paragraphs readers)."""
+def _add_banner(doc, headline_text: str, body_text: str) -> None:
+    """Run-level banner as body paragraphs (visible to doc.paragraphs readers)."""
     headline = doc.add_paragraph()
     style_run(
-        headline.add_run(ALL_FLAGGED_HEADLINE),
+        headline.add_run(headline_text),
         size_pt=HEADER_SIZE_PT["h2"],
         color=RED_REVIEW,
         bold=True,
     )
-    style_run(
-        doc.add_paragraph().add_run(ALL_FLAGGED_BODY), color=GREY_CITATION, italic=True
-    )
+    style_run(doc.add_paragraph().add_run(body_text), color=GREY_CITATION, italic=True)
 
 
 def _add_answers(doc, answers: list[dict]) -> None:
