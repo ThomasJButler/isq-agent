@@ -5,7 +5,7 @@ Your job is to execute one scoped implementation slice from `IMPLEMENTATION_PLAN
 The active phase and slice come from `IMPLEMENTATION_PLAN.md`; the matching `plans/plan-NN-*.md` holds the full spec (test definitions, schemas, prompts).
 
 ## Read first
-1. Read `RALPH.md` (loop operating rules + TDD discipline) and `CLAUDE.md` (project guidance, architecture, RAG config).
+1. Read `ralph/RALPH.md` (loop operating rules + TDD discipline) and `CLAUDE.md` (project guidance, architecture, RAG config).
 2. Read `IMPLEMENTATION_PLAN.md` (ordered checklist of unchecked tasks + the active phase).
 3. Read the `plans/plan-NN-*.md` spec for the active slice (test definitions, metadata schema, prompts).
 4. Read `plans/git-conventions.md` (Conventional Commits format, branching strategy).

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Autonomous Ralph loop rules live in `RALPH.md`. Local dev-tooling reference: `.claude/INSTALLED-PLUGINS.md`.
+> Autonomous Ralph loop rules live in `ralph/RALPH.md`. Local dev-tooling reference: `.claude/INSTALLED-PLUGINS.md`.
 
 ## Project Overview
 

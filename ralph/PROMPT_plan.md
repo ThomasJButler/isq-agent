@@ -12,7 +12,7 @@ If you do commit planning/doc updates, stage and commit only those files and do 
 Do not amend existing commits.
 
 ## Read first
-1. Read `RALPH.md` (loop operating rules) and `CLAUDE.md` (project guidance).
+1. Read `ralph/RALPH.md` (loop operating rules) and `CLAUDE.md` (project guidance).
 2. Read `IMPLEMENTATION_PLAN.md` and any current issue/review notes.
 3. Read all relevant specs and docs.
 4. Read enough source to verify actual implementation status.
