@@ -774,4 +774,151 @@
       transform: rotate(360deg);
     }
   }
+
+  /* —— Tabs — blue underline on the active tab (prototype Tabs → tokens.css) —— */
+  .tabs {
+    display: flex;
+    gap: var(--space-1);
+    border-bottom: 1px solid var(--border-1);
+  }
+  .tab {
+    position: relative;
+    height: 44px;
+    padding: 0 18px;
+    background: transparent;
+    border: 0;
+    color: var(--fg-3);
+    font-size: var(--fs-body-sm);
+    font-weight: var(--fw-medium);
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    letter-spacing: -0.005em;
+  }
+  .tab:hover {
+    color: var(--fg-1);
+  }
+  .tab.active {
+    color: var(--fg-1);
+  }
+  /* The active accent is the river-blue underline — never the Claude orange. */
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: -1px;
+    height: 2px;
+    background: var(--river-blue);
+    border-radius: 2px 2px 0 0;
+  }
+  .tab .badge {
+    background: var(--bg-2);
+  }
+
+  /* —— Timeline — vertical pipeline rail. The active dot pulses (tl-pulse); the
+     global prefers-reduced-motion rule in @layer base freezes it. —— */
+  .timeline {
+    position: relative;
+    padding-left: 44px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: 14px;
+    bottom: 14px;
+    width: 1px;
+    background: var(--border-2);
+  }
+  .tl-step {
+    position: relative;
+    padding: 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  .tl-dot {
+    position: absolute;
+    left: -44px;
+    top: 20px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--bg-0);
+    border: 1px solid var(--border-2);
+    color: var(--fg-4);
+    transition: all var(--dur-base) var(--ease);
+  }
+  .tl-step.done .tl-dot {
+    background: var(--fg-1);
+    border-color: var(--fg-1);
+    color: var(--bg-0);
+  }
+  .tl-step.active .tl-dot {
+    border-color: var(--river-blue);
+    background: var(--bg-0);
+    color: var(--river-blue);
+    box-shadow: 0 0 0 4px var(--river-blue-tint);
+    animation: tl-pulse 2s ease-in-out infinite;
+  }
+  @keyframes tl-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 4px var(--river-blue-tint);
+    }
+    50% {
+      box-shadow: 0 0 0 8px var(--river-blue-tint);
+    }
+  }
+  .tl-title {
+    font-size: var(--fs-body);
+    font-weight: var(--fw-semibold);
+    color: var(--fg-1);
+    margin: 2px 0;
+    letter-spacing: var(--ls-snug);
+  }
+  .tl-step.pending .tl-title {
+    color: var(--fg-3);
+    font-weight: var(--fw-medium);
+  }
+  .tl-sub {
+    font-size: var(--fs-caption);
+    color: var(--fg-3);
+  }
+
+  /* —— Progress — thin river-blue fill (pairs with the timeline on Processing) —— */
+  .progress {
+    height: 4px;
+    background: var(--bg-3);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .progress > span {
+    display: block;
+    height: 100%;
+    background: var(--river-blue);
+    transition: width var(--dur-base) var(--ease);
+  }
+
+  /* —— Pretty text wrap — the AnswerCard answer body pairs this with .t-serif. —— */
+  .pretty {
+    text-wrap: pretty;
+  }
+
+  /* —— AnswerCard expand fade (<=200ms; frozen by the reduced-motion rule). —— */
+  @keyframes fadein {
+    from {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
