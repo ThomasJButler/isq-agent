@@ -19,7 +19,7 @@ def test_root_returns_service_metadata(client):
     assert response.status_code == 200
     data = response.json()
     assert data["service"] == "ISQ Agent RAG Service"
-    assert data["version"] == "0.1.0"
+    assert data["version"] == "1.0.0"
     assert data["health"] == "/health"
     assert data["docs"] == "/docs"
 
