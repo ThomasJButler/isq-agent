@@ -147,6 +147,8 @@ bias is auditable.
 
 ## Dashboard
 
+![ISQ Agent landing page](docs/images/landing.png)
+
 A Next.js dashboard ships in [`frontend/`](frontend/), deployed at
 https://isq-agent-xyz.vercel.app/ (running on demo data for now; wiring it to the live backend is
 the v1.1 step). Three visual iterations were produced; the lead is the "Claude × RiverAI Hybrid":
