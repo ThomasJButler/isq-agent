@@ -263,3 +263,34 @@ class TestProcessQuestionnaire:
         assert body["questionnaire_meta"]["total_questions"] == 0
         assert body["summary_metrics"]["questions_flagged_for_review"] == 0
         assert body["summary_metrics"]["banner"] is None
+
+    @patch("app.api.process.AnswerGenerator")
+    @patch("app.api.process.Retriever")
+    def test_passes_question_index_to_generator(
+        self, mock_retriever, mock_generator, client
+    ):
+        # The question's own index is honoured, not just the list position.
+        _setup(mock_retriever, mock_generator, results=[_result(), _result()])
+        questions = [
+            {"question_id": "sun-q05", "text": "Q five?", "index": 5},
+            {"question_id": "sun-q06", "text": "Q six?", "index": 6},
+        ]
+        client.post("/process-questionnaire", json=_request(questions))
+        indices = [
+            call.kwargs["index"]
+            for call in mock_generator.return_value.generate.call_args_list
+        ]
+        assert indices == [5, 6]
+
+    @patch("app.api.process.AnswerGenerator")
+    @patch("app.api.process.Retriever")
+    def test_echoes_request_id(self, mock_retriever, mock_generator, client):
+        # An inbound X-Request-Id is echoed back for n8n correlation (like /answer).
+        _setup(mock_retriever, mock_generator, results=[_result()])
+        resp = client.post(
+            "/process-questionnaire",
+            json=_request(_questions(1)),
+            headers={"X-Request-Id": "isq-run-42"},
+        )
+        assert resp.status_code == 200
+        assert resp.headers.get("x-request-id") == "isq-run-42"

@@ -23,7 +23,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 from pydantic import BaseModel
 
 from app.confidence.aggregator import aggregate_confidence
@@ -160,11 +160,21 @@ def _to_summary_metrics(summary: ISQSummary) -> dict[str, Any]:
 
 
 @router.post("/process-questionnaire", response_model=ProcessResponse)
-def process_questionnaire(payload: ProcessRequest) -> dict[str, Any]:
+def process_questionnaire(
+    payload: ProcessRequest, request: Request, response: Response
+) -> dict[str, Any]:
     """Answer every question and assemble the canonical envelope. See module docstring."""
+    request_id = request.headers.get("x-request-id")
+    if request_id:
+        response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
+
     total = len(payload.questions)
     answers = [
-        _answer_one(question, index=position, total=total)
+        _answer_one(
+            question,
+            index=question.index if question.index is not None else position,
+            total=total,
+        )
         for position, question in enumerate(payload.questions, start=1)
     ]
 
