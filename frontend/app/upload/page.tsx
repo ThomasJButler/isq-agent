@@ -10,6 +10,7 @@ import { ProcessingShowcase } from "@/components/ProcessingShowcase";
 import { ArrowRightIcon, EmailIcon, FileIcon } from "@/components/icons";
 import { createRun, uploadRun } from "@/lib/api";
 import { EXAMPLES, type ExampleQuestionnaire } from "@/lib/examples";
+import { DEFAULT_MODEL, MODEL_STORAGE_KEY, prettyModelId } from "@/lib/models";
 
 // Screen 2 — Upload. The challenge's "manual file upload on a dashboard": drop a blank
 // ISQ (PDF / DOCX / XLSX) and it runs end to end through the live backend. A real dropped
@@ -33,6 +34,16 @@ export default function UploadPage(): JSX.Element {
   const [error, setError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [model, setModel] = useState(DEFAULT_MODEL);
+
+  // Reflect the model picked in Settings (persisted to localStorage) in the "Backed by"
+  // tile, so it can't keep claiming Sonnet while a run uses Opus/Haiku. Read on mount,
+  // not as a lazy initial state, so SSR/hydration use the default and the client updates.
+  useEffect(() => {
+    const saved = localStorage.getItem(MODEL_STORAGE_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved) setModel(saved);
+  }, []);
 
   // While the run is in flight, advance a local clock to drive the processing showcase. A
   // tick accumulator (not Date/performance.now) keeps it deterministic and SSR-safe. The
@@ -62,19 +73,20 @@ export default function UploadPage(): JSX.Element {
     setSubmitting(true);
     setError(undefined);
     try {
-      // The model the user picked in Settings (persisted to localStorage). Absent/invalid
-      // falls back to the backend default; query rewriting always stays on Haiku.
-      const model =
+      // The model the user picked in Settings (persisted to localStorage). Read live at
+      // submit so a just-changed pick is honoured; absent/invalid falls back to the
+      // backend default; query rewriting always stays on Haiku.
+      const selectedModel =
         typeof window !== "undefined"
-          ? (localStorage.getItem("isq-model") ?? undefined)
+          ? (localStorage.getItem(MODEL_STORAGE_KEY) ?? undefined)
           : undefined;
       const result = file
-        ? await uploadRun(file, model)
+        ? await uploadRun(file, selectedModel)
         : await createRun({
             filename: example!.filename,
             origin: example!.origin,
             source: example!.source,
-            model,
+            model: selectedModel,
           });
       router.push(`/runs/${result.run_id}/results`);
     } catch {
@@ -243,7 +255,7 @@ export default function UploadPage(): JSX.Element {
                 Backed by
               </div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, lineHeight: 1.7 }}>
-                <div>claude-sonnet-4.5</div>
+                <div>{prettyModelId(model)}</div>
                 <div>voyage-3-large · 1024d</div>
                 <div>pinecone · isq-agent-knowledge</div>
               </div>
