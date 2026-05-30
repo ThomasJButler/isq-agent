@@ -39,6 +39,7 @@ afterEach(() => {
   push.mockClear();
   uploadRun.mockClear();
   createRun.mockClear();
+  localStorage.clear();
   cleanup();
 });
 
@@ -55,6 +56,19 @@ describe("UploadPage — structure", () => {
   it("links back to the landing page", () => {
     render(<UploadPage />);
     expect(screen.getByRole("link", { name: /home/i })).toHaveAttribute("href", "/");
+  });
+});
+
+describe("UploadPage — the Backed by tile reflects the chosen model", () => {
+  it("shows the default model when none is persisted", () => {
+    render(<UploadPage />);
+    expect(screen.getByText("claude-sonnet-4.5")).toBeInTheDocument();
+  });
+
+  it("shows the model picked in Settings (e.g. Opus 4.8) after mount", async () => {
+    localStorage.setItem("isq-model", "claude-opus-4-8");
+    render(<UploadPage />);
+    expect(await screen.findByText("claude-opus-4.8")).toBeInTheDocument();
   });
 });
 
