@@ -69,9 +69,11 @@ flowchart TB
 Two tiers. The engine is a Python FastAPI service (`rag-service`, port 8000): it owns
 extraction, retrieval, generation, confidence scoring and rendering, and it's where the RAG
 expertise from my other projects already lived, so that's where it stays. The orchestration
-tier is n8n (port 5678), designed to drive the upload-to-download flow. In v1 the working path
-runs through the service's own `/process-questionnaire` assembler, called either by the
-packaged Claude Code skill or by `curl`, with n8n as the designed front door rather than the
+tier is n8n (port 5678), designed to drive the upload-to-download flow. The shipped front door
+is the deployed dashboard: the Next.js frontend (Vercel) posts an uploaded questionnaire
+straight to the service (Render), which extracts, answers and renders it. The same engine is
+reachable through the service's own `/process-questionnaire` assembler, called by the packaged
+Claude Code skill or by `curl`, with n8n as the designed orchestration tier rather than the
 shipped one. Both tiers come up together under `docker compose`, every external dependency
 (Voyage, Pinecone, Claude) sits behind the service, and an `X-Request-Id` threads through so a
 single questionnaire run is traceable end to end.
@@ -149,9 +151,13 @@ bias is auditable.
 
 ![ISQ Agent landing page](docs/images/landing.png)
 
-A Next.js dashboard ships in [`frontend/`](frontend/), deployed at
-https://isq-agent-xyz.vercel.app/ (running on demo data for now; wiring it to the live backend is
-the v1.1 step). Three visual iterations were produced; the lead is the "Claude × RiverAI Hybrid":
+A Next.js dashboard ships in [`frontend/`](frontend/), live at
+https://isq-agent-xyz.vercel.app/. It's wired to the real backend: upload a blank ISQ
+(PDF, DOCX or XLSX) and it runs the full pipeline, extracting the questions, grounding each
+answer in Northstar Labs' policies with a confidence score, flagging anything low-confidence,
+then handing back DOCX, XLSX and JSON to download. The frontend (Vercel) calls the rag-service
+(Render); it's free to use with no API key. Three visual iterations were produced; the lead is
+the "Claude × RiverAI Hybrid":
 a Claude warm-paper foundation with RiverAI black-pill CTAs, a blue interactive accent, and a
 single "Powered by Claude" badge. The full design handoff (tokens, components, five screens,
 interactive prototype) is in
@@ -187,8 +193,9 @@ approach and thought process Lee asked to see.
 - **Plan 10** - Demo + walkthrough script
 - **Plan 11** - Final consolidation + submission
 
-Plan 12 (the stretch Next.js dashboard) and Plan 13 (extra Voyage models, a post-submission
-spike) are also in the folder as forward-looking work, not part of the v1 cut.
+Plan 12 (the Next.js dashboard) shipped in v1.1: it's built, deployed and wired to the live
+backend. Plan 13 (extra Voyage models, a post-submission spike) is in the folder as
+forward-looking work.
 
 ## Licence
 
