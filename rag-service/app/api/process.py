@@ -32,6 +32,7 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
+from app.runs.store import make_run_id, run_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ class CanonicalAnswer(BaseModel):
 class QuestionnaireMeta(BaseModel):
     """Run-level provenance for the rendered outputs."""
 
+    run_id: str
     origin: str
     filename: str
     received_at: str | None
@@ -193,8 +195,10 @@ def process_questionnaire(
     ]
 
     summary = summarise(answers)
-    return {
+    run_id = make_run_id(payload.filename)
+    envelope = {
         "questionnaire_meta": {
+            "run_id": run_id,
             "origin": payload.origin,
             "filename": payload.filename,
             "received_at": payload.received_at,
@@ -204,3 +208,6 @@ def process_questionnaire(
         "answers": answers,
         "summary_metrics": _to_summary_metrics(summary),
     }
+    # Persist so the dashboard can fetch it back via GET /runs/{run_id} (v1.1 #18).
+    run_store.save(run_id, envelope)
+    return envelope
