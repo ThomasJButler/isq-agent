@@ -69,16 +69,9 @@ async def create_run_from_file(
     if request_id:
         response.headers["X-Request-Id"] = request_id
 
-    # Cost/abuse guard: fast-reject when the client honestly declares an oversized body.
-    # file.size is advisory only — browsers omit Content-Length on multipart parts, so it
-    # is often None; the real enforcement is the streamed cap during the read below (v1.1).
-    max_bytes = settings.max_upload_mb * 1024 * 1024
-    if file.size is not None and file.size > max_bytes:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large; the limit is {settings.max_upload_mb} MB.",
-        )
-
+    # The upload-size cost guard lives in MaxBodySizeMiddleware (app.core.body_limit), which
+    # caps the body on the raw ASGI stream before Starlette buffers the file part to disk.
+    # By the time this handler runs the body is already bounded, so we just stream it out.
     filename = file.filename or "questionnaire"
     suffix = Path(filename).suffix.lower()
     if suffix not in _SUPPORTED_SUFFIXES:
@@ -90,17 +83,10 @@ async def create_run_from_file(
     tmp_dir = Path(tempfile.mkdtemp(prefix="isq-ingest-"))
     try:
         tmp_path = tmp_dir / f"upload{suffix}"
-        # Stream to disk in chunks, enforcing the cap as we go so an upload that lies about
-        # (or omits) its size can't buffer unbounded into memory before any check runs.
-        total = 0
+        # Copy to disk in chunks so a large-but-allowed file is streamed, not read whole
+        # into memory.
         with open(tmp_path, "wb") as fh:
             while chunk := await file.read(_CHUNK_BYTES):
-                total += len(chunk)
-                if total > max_bytes:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"File too large; the limit is {settings.max_upload_mb} MB.",
-                    )
                 fh.write(chunk)
 
         try:
@@ -108,9 +94,12 @@ async def create_run_from_file(
             # blocking read doesn't stall the event loop (and every other request on it).
             processed = await asyncio.to_thread(process_document, tmp_path)
         except (ValueError, DocumentProcessingError) as exc:
+            # Log the underlying parser error server-side; return a generic message so raw
+            # pypdf/docx/openpyxl exception text isn't leaked to this public endpoint.
             logger.error("Failed to read uploaded document", exc_info=True)
             raise HTTPException(
-                status_code=422, detail=f"Couldn't read the document: {exc}"
+                status_code=422,
+                detail="Couldn't read the document. Make sure it's a valid PDF, DOCX or XLSX.",
             ) from exc
 
         # PDF/DOCX yield text directly; XLSX yields rows we flatten to text for extraction.

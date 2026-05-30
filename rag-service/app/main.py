@@ -14,6 +14,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api import answer, extract, health, index, process, render, runs
+from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
 from app.core.rate_limit import limiter
 
@@ -64,6 +65,13 @@ def _allowed_origins() -> list[str]:
     setting ALLOWED_ORIGINS on the host, with no code change."""
     raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:5678,http://n8n:5678")
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+# Request-body size cap (v1.1 cost/abuse guard). Added BEFORE CORS so CORS ends up the
+# outermost middleware and a 413 still carries CORS headers (otherwise a browser can't
+# read the rejection). Enforced on the raw ASGI stream — see MaxBodySizeMiddleware for why
+# the upload endpoint can't do this itself.
+app.add_middleware(MaxBodySizeMiddleware)
 
 
 # CORS: n8n + localhost by default; ALLOWED_ORIGINS env adds deployed frontends
