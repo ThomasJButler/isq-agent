@@ -47,14 +47,20 @@ describe("fetchRun", () => {
   });
 
   it("throws RunNotFoundError on 404", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ detail: "no run" }, false, 404)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ detail: "no run" }, false, 404)),
+    );
     await expect(fetchRun("missing", "https://api.example.com")).rejects.toBeInstanceOf(
       RunNotFoundError,
     );
   });
 
   it("throws a generic error on other non-ok responses", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({}, false, 503)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({}, false, 503)),
+    );
     await expect(fetchRun("x", "https://api.example.com")).rejects.toThrow(/503/);
   });
 });
@@ -105,7 +111,10 @@ describe("createRun", () => {
   });
 
   it("throws if extraction fails", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({}, false, 502)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({}, false, 502)),
+    );
     await expect(
       createRun(
         {
