@@ -49,8 +49,13 @@ vector space.
 ## 4. How AI-generated answers are produced
 
 `app/rag/generator.py`: **one Claude call per question**, with a forced `submit_answer` tool call so
-the model must return schema-valid JSON — the answer, the citations it used, and an honest
-four-dimension self-score. The system prompt is strict: **use only the chunks provided, prefer
+the model returns its answer as a structured payload — the answer, the citations it used, and an
+honest four-dimension self-score. Forced tool-use guarantees the *call*, not perfect JSON in every
+field (real models deviate — Opus 4.8 can leak tool-call scaffolding into the answer text, Haiku can
+return citations as bare strings), so the generator treats the raw output as untrusted and
+**normalises it first** — stripping any leaked scaffolding, recovering embedded citations, coercing
+citations to objects, filling and clamping the self-score — so a deviation degrades honestly instead
+of crashing or shipping markup. The system prompt is strict: **use only the chunks provided, prefer
 policies over old answers, never invent, score yourself.** The static rules + worked examples are
 marked for **prompt caching**, so questions 2..N of a run re-read them cheaply. A **citation lint**
 then **docks the grounding score** (a fixed −0.2 on the `cites_policy` dimension) for any
