@@ -338,3 +338,128 @@ def test_generate_cost_discounts_cached_tokens(mock_anthropic):
     # Cheaper than billing all 4200 input tokens at the full rate.
     naive = round(4200 / 1_000_000 * 3.0 + 180 / 1_000_000 * 15.0, 6)
     assert metrics["cost_usd"] < naive
+
+
+# Robustness to imperfect model tool-output (v1.2 cross-model live testing).
+# Forced tool-use guarantees a tool *call*, not schema-*perfect* JSON: Haiku 4.5
+# returned citations as bare strings (AttributeError), Opus 4.8 omitted a self-score
+# dimension (InvalidScoreError) and leaked its tool-call scaffolding into the answer
+# text. Each used to fail a real question on the live deploy; these pin the fixes.
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_coerces_string_citations(mock_anthropic):
+    """Citations returned as bare strings are coerced to dicts, not crashed on (Haiku 4.5)."""
+    from app.rag.generator import AnswerGenerator
+
+    _mock_anthropic_submit_answer(mock_anthropic, citations=["nlisp-p3-c0"])
+
+    result = AnswerGenerator(api_key="test-key").generate(
+        "Q?", [_chunk(source_id="nlisp-p3-c0")]
+    )
+
+    assert result["citations"] == [{"source_id": "nlisp-p3-c0"}]
+    # nlisp-p3-c0 was provided, so it is not treated as a hallucinated citation.
+    assert result["self_score"]["cites_policy"] == 1.0
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_fills_missing_self_score_dimension(mock_anthropic):
+    """A self_score missing a dimension is filled (0.0), not crashed on (Opus 4.8)."""
+    from app.rag.generator import AnswerGenerator
+
+    _mock_anthropic_submit_answer(
+        mock_anthropic,
+        self_score={
+            "on_topic": 1.0,
+            "vendor_tone": 0.9,
+            "complete": 1.0,
+        },  # no cites_policy
+    )
+
+    result = AnswerGenerator(api_key="test-key").generate("Q?", [_chunk()])
+
+    score = result["self_score"]
+    assert set(score) == {"cites_policy", "on_topic", "vendor_tone", "complete"}
+    # Missing grounding dimension defaults low, biasing the answer toward a review flag.
+    assert score["cites_policy"] == 0.0
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_clamps_out_of_range_self_score(mock_anthropic):
+    """Out-of-range self-score values are clamped into [0, 1]."""
+    from app.rag.generator import AnswerGenerator
+
+    _mock_anthropic_submit_answer(
+        mock_anthropic,
+        self_score={
+            "cites_policy": 1.4,
+            "on_topic": -0.2,
+            "vendor_tone": 0.9,
+            "complete": 1.0,
+        },
+    )
+
+    result = AnswerGenerator(api_key="test-key").generate("Q?", [_chunk()])
+
+    score = result["self_score"]
+    assert score["cites_policy"] == 1.0
+    assert score["on_topic"] == 0.0
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_strips_scaffolding_and_recovers_citations(mock_anthropic):
+    """Leaked tool-call scaffolding is stripped and embedded citations recovered (Opus 4.8)."""
+    from app.rag.generator import AnswerGenerator
+
+    leaked = (
+        "Multi-factor authentication is mandatory across our systems.</answer>\n"
+        '<parameter name="citations">[{"source_id": "nlisp-p3-c0", '
+        '"text_snippet": "MFA is mandatory"}]</parameter>'
+    )
+    _mock_anthropic_submit_answer(mock_anthropic, answer=leaked, citations=[])
+
+    result = AnswerGenerator(api_key="test-key").generate(
+        "Q?", [_chunk(source_id="nlisp-p3-c0")]
+    )
+
+    # The answer is clean prose — no scaffolding bleeds into the rendered document.
+    assert (
+        result["answer"]
+        == "Multi-factor authentication is mandatory across our systems."
+    )
+    assert "</answer>" not in result["answer"]
+    assert "<parameter" not in result["answer"]
+    # Grounding survives: the citation embedded in the leak is recovered.
+    assert result["citations"] == [
+        {"source_id": "nlisp-p3-c0", "text_snippet": "MFA is mandatory"}
+    ]
+    # The recovered citation was provided, so cites_policy is not docked.
+    assert result["self_score"]["cites_policy"] == 1.0
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_flags_when_scaffolding_leak_unrecoverable(mock_anthropic):
+    """A leak with no recoverable citations is cleaned, docked, and flagged for review."""
+    from app.rag.generator import AnswerGenerator
+
+    leaked = 'Some answer about access control.</answer>\n<parameter name="citations">(corrupt)'
+    _mock_anthropic_submit_answer(
+        mock_anthropic,
+        answer=leaked,
+        citations=[],
+        self_score={
+            "cites_policy": 0.9,
+            "on_topic": 1.0,
+            "vendor_tone": 0.9,
+            "complete": 1.0,
+        },
+    )
+
+    result = AnswerGenerator(api_key="test-key").generate("Q?", [_chunk()])
+
+    assert result["answer"] == "Some answer about access control."
+    assert "</answer>" not in result["answer"]
+    # Grounding could not be verified → docked and flagged for a human.
+    assert result["self_score"]["cites_policy"] == pytest.approx(0.7)
+    assert result["needs_review_reason"]
