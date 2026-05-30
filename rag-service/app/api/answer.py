@@ -26,7 +26,9 @@ from pydantic import BaseModel
 from voyageai.error import VoyageError
 
 from app.confidence.aggregator import aggregate_confidence
+from app.core.config import settings
 from app.core.pinecone_client import PineconeIndexError
+from app.core.rate_limit import limiter
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
 
@@ -76,6 +78,7 @@ class AnswerResponse(BaseModel):
 
 
 @router.post("/answer", response_model=AnswerResponse)
+@limiter.limit(lambda: settings.rate_limit_default)
 def answer_question(
     payload: AnswerRequest, request: Request, response: Response
 ) -> dict[str, Any]:

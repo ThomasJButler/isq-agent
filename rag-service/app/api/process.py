@@ -23,13 +23,16 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from app.confidence.aggregator import aggregate_confidence
 from app.confidence.summary import ISQSummary, summarise
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
+from app.runs.store import make_run_id, run_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -78,6 +81,7 @@ class CanonicalAnswer(BaseModel):
 class QuestionnaireMeta(BaseModel):
     """Run-level provenance for the rendered outputs."""
 
+    run_id: str
     origin: str
     filename: str
     received_at: str | None
@@ -160,6 +164,7 @@ def _to_summary_metrics(summary: ISQSummary) -> dict[str, Any]:
 
 
 @router.post("/process-questionnaire", response_model=ProcessResponse)
+@limiter.limit(lambda: settings.rate_limit_heavy)
 def process_questionnaire(
     payload: ProcessRequest, request: Request, response: Response
 ) -> dict[str, Any]:
@@ -167,6 +172,17 @@ def process_questionnaire(
     request_id = request.headers.get("x-request-id")
     if request_id:
         response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
+
+    # Cost guard: cap the number of questions before any retrieval/generation, so a
+    # huge questionnaire can't fan out into thousands of LLM calls (v1.1).
+    if len(payload.questions) > settings.max_questions:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Too many questions ({len(payload.questions)}); the limit is "
+                f"{settings.max_questions}. Split the questionnaire and retry."
+            ),
+        )
 
     total = len(payload.questions)
     answers = [
@@ -179,8 +195,10 @@ def process_questionnaire(
     ]
 
     summary = summarise(answers)
-    return {
+    run_id = make_run_id(payload.filename)
+    envelope = {
         "questionnaire_meta": {
+            "run_id": run_id,
             "origin": payload.origin,
             "filename": payload.filename,
             "received_at": payload.received_at,
@@ -190,3 +208,6 @@ def process_questionnaire(
         "answers": answers,
         "summary_metrics": _to_summary_metrics(summary),
     }
+    # Persist so the dashboard can fetch it back via GET /runs/{run_id} (v1.1 #18).
+    run_store.save(run_id, envelope)
+    return envelope

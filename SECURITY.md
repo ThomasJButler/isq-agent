@@ -99,10 +99,24 @@ Being straight about what this does not do:
 
 - **No authentication.** Any route is open to anything that can reach `:8000`. The whole security posture rests on the service being network-isolated behind n8n. If that boundary is wrong, everything else is moot.
 - **Prompt-injection mitigations are bounded.** Question text is data, the schema is forced, and fabricated citations are flagged, but a crafted question can still influence answer wording within the rules. The human review gate is the real backstop.
-- **No question cap.** `/process-questionnaire` answers as many questions as it's handed. `large_questionnaire` is a warning, not a limit. Cost scales linearly with input with no enforced ceiling.
-- **No upload size limit** on `POST /render`, and the source XLSX is read fully into memory with no content-type check.
+- **Question cap (added in v1.1 — §5).** `/process-questionnaire` rejects more than `MAX_QUESTIONS` (default 50) with a 413 before any retrieval or generation. (Was unlimited in v1.0; `large_questionnaire` was only a prompt warning.)
+- **Upload-size cap (added in v1.1 — §5).** `POST /render` rejects a source workbook over `MAX_UPLOAD_MB` (default 10) with a 413 before reading it. The source's content-type is still trusted.
 - **Minor internal detail in two error paths** (the render JSON parse error, the index filename). Low risk for an internal caller, not zero.
 - **CORS `allow_headers` is `"*"`.** Origins and methods are locked down; headers aren't. Not an origin bypass, but broader than it needs to be.
 - **Dependency CVEs (pip-audit).** 27 known advisories sit in pinned deps, mostly pypdf 4.3.1 (22, parsing/DoS-style bugs). The fixes are major-version bumps deferred to v1.1 (see the backlog), bounded by the internal, single-caller deployment.
 
-None of these are show-stoppers for an internal, single-caller deployment. They would all need revisiting before this service ever faced an untrusted network.
+None of these were show-stoppers for the internal, single-caller v1.0 deployment. v1.1 changes the picture — the service is now hosted and public — so the most pressing of them (no question cap, no upload limit, no rate limiting) are addressed below.
+
+## 5. v1.1 update — cost controls for the hosted, public deploy
+
+v1.0's posture assumed an internal service behind n8n. v1.1 puts it on a **public** footing: the Next.js dashboard (Vercel) calls the FastAPI backend (Render) directly from the browser, and the hosted instance is **free to use with no per-user key** — the operator's keys live in the backend environment. That relaxes the "only n8n can reach it" assumption, so the no-auth gap is now fenced by app-side cost controls plus a provider-side backstop:
+
+- **Per-IP rate limiting (slowapi).** Every public POST is limited per client IP and returns a clean `429`: `/process-questionnaire` at 5/min (it fans out into many LLM calls), `/answer`, `/extract-questions` and `/render` at 30/min. Tunable via `RATE_LIMIT_DEFAULT` / `RATE_LIMIT_HEAVY`.
+- **Question cap.** `/process-questionnaire` rejects more than `MAX_QUESTIONS` (default 50) with a `413` before any LLM call — one upload can't fan out into thousands of generations.
+- **Upload-size cap.** `/render` rejects a source workbook over `MAX_UPLOAD_MB` (default 10) with a `413`.
+- **CORS** is env-driven (`ALLOWED_ORIGINS`) so only the deployed dashboard origin is allowed, never `*`.
+- **Provider backstop.** The Anthropic key runs in a dedicated workspace with its own rate limits (the default Sonnet tier generous, Opus fenced tight, web search disabled) and a hard **monthly spend cap** — the ceiling that bounds total cost no matter what gets past the app layer.
+
+These layer up: the app caps + rate limit stop abuse cheaply with friendly errors; the workspace rate limits cap burst throughput; the monthly spend cap is the hard wallet ceiling.
+
+**Residual, by design (free public demo):** runs are addressable by `run_id` with no per-user auth, so anyone holding a run's id can fetch it. The ids are unguessable (a slug plus a random suffix) and runs are ephemeral in memory, and the corpus is a fictional company, so this is an accepted trade-off for an open demo — not a model for handling real customer data, which would need authentication.

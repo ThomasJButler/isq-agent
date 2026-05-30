@@ -10,9 +10,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
-from app.api import answer, extract, health, index, process, render
+from app.api import answer, extract, health, index, process, render, runs
 from app.core.config import settings
+from app.core.rate_limit import limiter
 
 
 # Structured logging — JSON-style for production parseability
@@ -48,6 +51,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Per-IP rate limiting (v1.1 cost protection). Limits are attached per-route in the
+# api modules via @limiter.limit; here we register the limiter + its 429 handler so a
+# tripped limit returns a clean Too Many Requests rather than a 500.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 def _allowed_origins() -> list[str]:
     """CORS origins from the ALLOWED_ORIGINS env (comma-separated), else the local
@@ -74,6 +83,7 @@ app.include_router(index.router, tags=["index"])
 app.include_router(extract.router, tags=["extraction"])
 app.include_router(process.router, tags=["processing"])
 app.include_router(render.router, tags=["render"])
+app.include_router(runs.router, tags=["runs"])
 
 
 @app.get("/")
@@ -81,7 +91,7 @@ async def root():
     """Default route — links to health and docs."""
     return {
         "service": "ISQ Agent RAG Service",
-        "version": "1.0.0",
+        "version": app.version,
         "health": "/health",
         "docs": "/docs",
     }

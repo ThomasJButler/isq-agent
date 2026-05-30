@@ -27,5 +27,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     rag_service_port: int = 8000
 
+    # Cost-protection limits (v1.1) — bound abuse on the free hosted deploy. All
+    # env-overridable on Render; see SECURITY.md. These sit in front of the
+    # Anthropic workspace rate limits + monthly spend cap.
+    max_questions: int = 50  # reject a questionnaire with more questions (413)
+    max_upload_mb: int = 10  # reject a larger /render source workbook (413)
+    rate_limit_default: str = "30/minute"  # per-IP, the lighter public endpoints
+    rate_limit_heavy: str = "5/minute"  # per-IP, /process-questionnaire (fans out)
+
 
 settings = Settings()

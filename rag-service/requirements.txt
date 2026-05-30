@@ -9,6 +9,9 @@ uvicorn[standard]>=0.32.0,<0.33.0
 pydantic>=2.9.0,<3.0.0
 pydantic-settings>=2.5.0,<3.0.0
 
+# ---------- Rate limiting (v1.1 cost protection) ----------
+slowapi>=0.1.9,<0.2.0
+
 # ---------- LLM + embeddings ----------
 anthropic>=0.34.0,<1.0.0
 voyageai>=0.2.0,<1.0.0
