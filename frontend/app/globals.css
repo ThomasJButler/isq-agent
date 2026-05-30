@@ -129,6 +129,10 @@
   --composer-max: 760px;
   --reading-max: 720px;
   --page-max: 1200px;
+  /* Responsive page gutter: ~16px on a phone, easing to the 32px desktop inset.
+     Pages reference var(--gutter) for left/right padding so mobile recovers ~32px
+     of content width with no media query. */
+  --gutter: clamp(16px, 5vw, var(--space-8));
 
   /* ============================================================
      RiverAI brand layer — :root overrides ported from tokens.css
@@ -258,6 +262,11 @@
   body {
     background: var(--bg-0);
     color: var(--fg-1);
+    /* Mobile guard: never let a stray wide child scroll the whole page sideways.
+       `clip` (not `hidden`) so it establishes no scroll container and leaves the
+       sticky TopBar intact. Genuinely wide blocks (the tab strip, the results
+       metrics table) scroll inside themselves instead — see .tabs + MetricsTab. */
+    overflow-x: clip;
     font-family: var(--font-sans);
     font-size: var(--fs-body-sm); /* hybrid: RiverAI runs a 14px base */
     line-height: var(--lh-normal);
@@ -444,7 +453,7 @@
     border-bottom: 1px solid var(--border-1);
     display: flex;
     align-items: center;
-    padding: 0 var(--space-8);
+    padding: 0 var(--gutter);
   }
   .topbar .wordmark-link {
     color: inherit;
@@ -473,6 +482,20 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+  }
+  /* Mobile: the bar is a fixed 64px height and can't wrap, so tighten the gutter
+     and nav gap and drop the "Repo" word to its icon (the <a> keeps an aria-label)
+     so all five controls fit a 320px width without scrolling the page. */
+  @media (max-width: 480px) {
+    .topbar {
+      padding: 0 var(--space-3);
+    }
+    .topbar nav {
+      gap: var(--space-3);
+    }
+    .topbar .repo-label {
+      display: none;
+    }
   }
 
   /* —— Light/dark toggle (Slice 17 tweak #6) — a round icon button at the far
@@ -730,7 +753,7 @@
     border: 1.5px dashed var(--border-3);
     border-radius: var(--radius-lg);
     background: #ffffff;
-    padding: var(--space-16) var(--space-10);
+    padding: clamp(36px, 10vw, var(--space-16)) clamp(16px, 6vw, var(--space-10));
     text-align: center;
     transition:
       border-color var(--dur-fast) var(--ease),
@@ -773,7 +796,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    min-width: 260px;
+    min-width: min(260px, calc(100vw - 2 * var(--space-6)));
+    max-width: calc(100vw - 2 * var(--space-6));
     animation: toast-in 200ms var(--ease-out);
   }
   @keyframes toast-in {
@@ -823,9 +847,18 @@
     display: flex;
     gap: var(--space-1);
     border-bottom: 1px solid var(--border-1);
+    /* Let a too-wide tab strip scroll inside itself on mobile, never the page. */
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
   }
   .tab {
     position: relative;
+    flex: 0 0 auto;
     height: 44px;
     padding: 0 18px;
     background: transparent;
@@ -1108,6 +1141,13 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-3);
+  }
+  /* One column on phones so the model cards (and their mono price strings) stop
+     overflowing the narrow Settings card. */
+  @media (max-width: 480px) {
+    .radio-group {
+      grid-template-columns: 1fr;
+    }
   }
   .radio-card {
     position: relative;

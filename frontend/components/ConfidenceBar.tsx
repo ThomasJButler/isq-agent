@@ -39,7 +39,7 @@ export function ConfidenceBar({
         <span className="conf-bar">
           <span style={{ width: `${pct}%` }} />
         </span>
-        <span>{pct}</span>
+        <span style={{ color: "var(--fg-1)", fontWeight: 600 }}>{pct}</span>
       </span>
     );
   }
@@ -56,7 +56,7 @@ export function ConfidenceBar({
       <span className="conf-bar">
         <span style={{ width: `${pct}%` }} />
       </span>
-      <span>{score.toFixed(2)}</span>
+      <span style={{ color: "var(--fg-1)", fontWeight: 600 }}>{score.toFixed(2)}</span>
     </span>
   );
 }

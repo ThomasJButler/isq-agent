@@ -40,8 +40,8 @@ const CONTAINER: CSSProperties = {
   maxWidth: 1200,
   marginLeft: "auto",
   marginRight: "auto",
-  paddingLeft: "var(--space-8)",
-  paddingRight: "var(--space-8)",
+  paddingLeft: "var(--gutter)",
+  paddingRight: "var(--gutter)",
 };
 
 const MONO: CSSProperties = { fontFamily: "var(--font-mono)" };
@@ -105,7 +105,13 @@ export default function Home() {
             </div>
             <h1
               className="pretty"
-              style={{ margin: "0 0 18px", maxWidth: 720, fontSize: 44, lineHeight: 1.1 }}
+              style={{
+                margin: "0 0 18px",
+                maxWidth: 720,
+                fontSize: "clamp(28px, 8vw, 44px)",
+                lineHeight: 1.1,
+                overflowWrap: "break-word",
+              }}
             >
               Answer supplier security questionnaires with grounded AI.
             </h1>
@@ -141,6 +147,10 @@ export default function Home() {
                 How it works
               </Button>
             </div>
+            <p className="muted" style={{ fontSize: 13, marginTop: 16, marginBottom: 0 }}>
+              Free to use right now, no API key needed. I&apos;m covering the costs for a limited
+              time, so have a go while it&apos;s open.
+            </p>
           </div>
 
           {/* Inline product snapshot — small, restrained, static. */}
@@ -166,7 +176,10 @@ export default function Home() {
                   }}
                 />
               ))}
-              <span className="muted" style={{ ...MONO, fontSize: 11, marginLeft: 8 }}>
+              <span
+                className="muted"
+                style={{ ...MONO, fontSize: 11, marginLeft: 8, overflowWrap: "anywhere" }}
+              >
                 isq-agent.local · /runs/sun-20260525-001/results
               </span>
             </div>
@@ -174,8 +187,10 @@ export default function Home() {
               <div
                 style={{
                   display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  gap: "var(--space-2)",
                   marginBottom: 18,
                 }}
               >
@@ -292,11 +307,11 @@ export default function Home() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>
+          <div style={{ flex: "1 1 260px" }}>
+            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>
               Grounded, not generative.
             </div>
-            <div className="muted" style={{ fontSize: 13 }}>
+            <div className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>
               Every answer cites the policy chunks it was drawn from. Low-confidence or out-of-scope
               answers are flagged, not hidden.
             </div>
@@ -305,25 +320,26 @@ export default function Home() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "var(--space-6)",
+              flexWrap: "wrap",
+              gap: "var(--space-4) var(--space-6)",
               ...MONO,
-              fontSize: 12,
+              fontSize: 14,
             }}
           >
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Median cost / ISQ
               </div>
               <div style={{ fontWeight: 600 }}>$0.08</div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Median time
               </div>
               <div style={{ fontWeight: 600 }}>42s</div>
             </div>
             <div>
-              <div className="muted" style={{ fontSize: 11 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
                 Flag rate
               </div>
               <div style={{ fontWeight: 600 }}>~10%</div>
