@@ -84,3 +84,23 @@ export async function createRun(
   const envelope = (await processRes.json()) as CanonicalEnvelope;
   return { run_id: envelope.questionnaire_meta.run_id ?? "", envelope };
 }
+
+/**
+ * Upload a questionnaire FILE (PDF / DOCX / XLSX) to POST /runs: the backend extracts the
+ * text, extracts the questions, answers them, and stores the run. Returns the run_id (for
+ * the results URL) + envelope. This is the dashboard's manual-file-upload path — the
+ * challenge's "accept a blank ISQ document".
+ */
+export async function uploadRun(
+  file: File,
+  baseUrl: string = API_BASE,
+): Promise<{ run_id: string; envelope: CanonicalEnvelope }> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${baseUrl}/runs`, { method: "POST", body: form });
+  if (!res.ok) {
+    throw new Error(`Upload failed (${res.status}).`);
+  }
+  const envelope = (await res.json()) as CanonicalEnvelope;
+  return { run_id: envelope.questionnaire_meta.run_id ?? "", envelope };
+}

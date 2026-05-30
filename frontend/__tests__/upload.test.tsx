@@ -1,30 +1,28 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-// The /upload page is a "use client" page: it owns useState for the selected
-// file / error / submit phase and calls useRouter().push on submit. jsdom has no
-// app router mounted, so we mock next/navigation (useRouter -> { push }) the same
-// way the Slice 12 settings test did — asserting the page's OWN contract, not
-// real routing (that is covered by `npm run build` + the Slice 18 browser pass).
-// push is hoisted so the vi.mock factory can close over it.
-//
-// What these tests prove: the screen's behaviour contract — the CTA gates on a
-// selected file; an example shortcut populates the dropzone and hides the
-// examples; an invalid pick surfaces the Slice 5 validator's EXACT message via an
-// alert banner that dismisses; submit runs its phases and routes to the run's
-// processing screen. What they do NOT prove: rendered visuals (the dashed zone,
-// the pill fills) — jsdom never loads the Tailwind-built stylesheet.
+// The /upload page is a "use client" page: it owns useState for the selected file /
+// example / error / submitting and calls lib/api (uploadRun / createRun) then
+// useRouter().push on submit. jsdom has no app router mounted and no backend, so we mock
+// next/navigation (useRouter -> { push }) and @/lib/api. We assert the page's OWN contract
+// — a real dropped File routes via uploadRun, an example routes via createRun, both to the
+// real run's results URL — not real routing or a live backend (that is the browser pass).
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
 }));
 
+const { uploadRun, createRun } = vi.hoisted(() => ({
+  uploadRun: vi.fn(),
+  createRun: vi.fn(),
+}));
+vi.mock("@/lib/api", () => ({ uploadRun, createRun }));
+
 import UploadPage from "@/app/upload/page";
 import { TYPE_ERROR_MESSAGE } from "@/lib/validate";
 
-// A real File with a controlled size — avoids allocating megabytes. The Dropzone
-// delegates to validateUpload, which only ever reads name + size. Same helper as
-// the Slice 9 dropzone test.
+// A real File with a controlled size — avoids allocating megabytes. The Dropzone delegates
+// to validateUpload, which only reads name + size.
 function makeFile(name: string, size: number, type = ""): File {
   const file = new File(["x"], name, { type });
   Object.defineProperty(file, "size", { value: size });
@@ -37,14 +35,10 @@ function fileInput(container: HTMLElement): HTMLInputElement {
   return input as HTMLInputElement;
 }
 
-beforeEach(() => {
-  vi.useFakeTimers();
-  push.mockClear();
-});
-
 afterEach(() => {
-  vi.runOnlyPendingTimers();
-  vi.useRealTimers();
+  push.mockClear();
+  uploadRun.mockClear();
+  createRun.mockClear();
   cleanup();
 });
 
@@ -64,25 +58,22 @@ describe("UploadPage — structure", () => {
   });
 });
 
-describe("UploadPage — the Start CTA gates on a selected file", () => {
-  it("disables Start processing until a file is chosen", () => {
+describe("UploadPage — the Start CTA gates on a selection", () => {
+  it("disables Start processing until a file or example is chosen", () => {
     render(<UploadPage />);
     expect(screen.getByRole("button", { name: "Start processing" })).toBeDisabled();
   });
 });
 
 describe("UploadPage — example shortcuts", () => {
-  it("populates the dropzone with the example file and hides the examples", () => {
+  it("selects the example, shows its filename, hides the examples, and enables the CTA", () => {
     render(<UploadPage />);
     fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
 
-    // The selected-file panel shows the real filename.
     expect(
       screen.getByText("Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf"),
     ).toBeInTheDocument();
-    // Examples disappear once a file is selected.
     expect(screen.queryByRole("button", { name: /Blackridge/ })).not.toBeInTheDocument();
-    // The CTA is now enabled.
     expect(screen.getByRole("button", { name: "Start processing" })).not.toBeDisabled();
   });
 });
@@ -102,26 +93,43 @@ describe("UploadPage — validation wiring", () => {
   });
 });
 
-describe("UploadPage — submit routes to the processing screen", () => {
-  it("runs the submit phases then pushes to the run's processing route", () => {
+describe("UploadPage — submit runs the questionnaire and routes to its results", () => {
+  it("an example runs via createRun and routes to the real run's results", async () => {
+    createRun.mockResolvedValue({ run_id: "sunflowers-1a2b3c", envelope: {} });
     render(<UploadPage />);
     fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
 
-    // Phase 1: checking.
-    expect(screen.getByRole("button", { name: /Checking file/ })).toBeInTheDocument();
+    // The processing state shows while the backend answers.
+    expect(screen.getByText("Answering your questionnaire…")).toBeInTheDocument();
 
-    // Phase 2: sending.
-    act(() => {
-      vi.advanceTimersByTime(600);
-    });
-    expect(screen.getByRole("button", { name: /Sending to workflow/ })).toBeInTheDocument();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/runs/sunflowers-1a2b3c/results"));
+    expect(createRun).toHaveBeenCalledTimes(1);
+    expect(uploadRun).not.toHaveBeenCalled();
+  });
 
-    // Routed to /runs/<id>.
-    act(() => {
-      vi.advanceTimersByTime(700);
+  it("a dropped file runs via uploadRun and routes to the real run's results", async () => {
+    uploadRun.mockResolvedValue({ run_id: "upload-9z8y", envelope: {} });
+    const { container } = render(<UploadPage />);
+    fireEvent.change(fileInput(container), {
+      target: { files: [makeFile("my-isq.pdf", 5000, "application/pdf")] },
     });
-    expect(push).toHaveBeenCalledTimes(1);
-    expect(push.mock.calls[0][0]).toMatch(/^\/runs\//);
+    fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/runs/upload-9z8y/results"));
+    expect(uploadRun).toHaveBeenCalledTimes(1);
+    expect(createRun).not.toHaveBeenCalled();
+  });
+
+  it("surfaces an error and recovers if the run fails", async () => {
+    createRun.mockRejectedValue(new Error("backend down"));
+    render(<UploadPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/went wrong/i);
+    expect(push).not.toHaveBeenCalled();
+    // Back to an actionable state.
+    expect(screen.getByRole("button", { name: "Start processing" })).toBeInTheDocument();
   });
 });
