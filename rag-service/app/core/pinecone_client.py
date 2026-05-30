@@ -172,3 +172,18 @@ class PineconeClient:
             "score": match.score,
             "metadata": getattr(match, "metadata", None) or {},
         }
+
+
+# Process-wide singleton. Constructing a PineconeClient calls Pinecone(...), which runs the
+# SDK's plugin discovery and an index-list round-trip — cheap once, but the retriever used to
+# build a fresh client per question, so a 20-question run paid that ~40 times (and spammed the
+# logs). Share one client instead; it is safe for concurrent read queries.
+_pinecone_client: PineconeClient | None = None
+
+
+def get_pinecone_client() -> PineconeClient:
+    """Return the shared PineconeClient, constructing it on first use."""
+    global _pinecone_client
+    if _pinecone_client is None:
+        _pinecone_client = PineconeClient()
+    return _pinecone_client

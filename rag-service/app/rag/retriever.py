@@ -23,9 +23,9 @@ Two ordering decisions, both from plan-04 Section 7:
 
 from typing import Any
 
-from app.core.pinecone_client import PineconeClient
+from app.core.pinecone_client import PineconeClient, get_pinecone_client
 from app.rag.query_rewriter import QueryRewriter
-from app.voyage.client import VoyageClient
+from app.voyage.client import VoyageClient, get_voyage_client
 
 # Locked retrieval defaults (plan-04 Section 7).
 TOP_K = 5
@@ -54,12 +54,13 @@ class Retriever:
             voyage_client: Embeds the query. Defaults to a new VoyageClient.
             pinecone_client: Vector search. Defaults to a new PineconeClient.
 
-        Collaborators are injected for testability; the defaults construct the
-        real clients (which read API keys from settings/env at init time).
+        Collaborators are injected for testability; the defaults reuse the shared
+        Voyage + Pinecone singletons (so plugin discovery + client setup happen once
+        per process, not once per question) and a fresh QueryRewriter (which is cheap).
         """
         self.query_rewriter = query_rewriter or QueryRewriter()
-        self.voyage_client = voyage_client or VoyageClient()
-        self.pinecone_client = pinecone_client or PineconeClient()
+        self.voyage_client = voyage_client or get_voyage_client()
+        self.pinecone_client = pinecone_client or get_pinecone_client()
 
     def retrieve(
         self,

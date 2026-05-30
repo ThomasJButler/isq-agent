@@ -174,7 +174,12 @@ class TestProcessQuestionnaire:
         assert sm["total_cost_usd"] == pytest.approx(0.006)
         # total_tokens is the sum of in + out across all questions
         assert sm["total_tokens"] == 1000 + 80 + 500 + 40
-        assert sm["total_latency_ms"] == pytest.approx(2400.0)
+        # total_latency_ms is now the WALL-CLOCK answering time (questions run concurrently),
+        # not the sum of per-question latencies. The mocked work is instant here, so it's a
+        # small non-negative number; the per-question latencies still sum to 2400ms.
+        assert sm["total_latency_ms"] >= 0
+        answers = resp.json()["answers"]
+        assert sum(a["metrics"]["latency_ms"] for a in answers) == pytest.approx(2400.0)
         assert sm["questions_flagged_for_review"] == 0
         assert sm["banner"] is None
         assert "average_confidence" in sm

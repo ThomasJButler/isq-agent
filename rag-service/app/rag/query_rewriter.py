@@ -53,9 +53,11 @@ class QueryRewriter:
         """
         Args:
             api_key: Anthropic API key. Falls back to settings.anthropic_api_key.
-            model: Model name. Falls back to settings.anthropic_model.
+            model: Model name. Falls back to settings.anthropic_query_rewrite_model
+                (fast Haiku) — rewriting is a cheap keyword-expansion step and stays off
+                the heavier answer-generation model regardless of what a run requests.
         """
-        self.model = model or settings.anthropic_model
+        self.model = model or settings.anthropic_query_rewrite_model
         self.client = Anthropic(api_key=api_key or settings.anthropic_api_key)
 
     def rewrite(self, query: str) -> str:
