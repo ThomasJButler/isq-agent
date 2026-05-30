@@ -85,6 +85,9 @@ scratch/
 # Personal study notes (private, never a deliverable)
 learning/
 
+# Tom's private working notes — n8n setup runbook, interview prep crib (never a deliverable)
+private/
+
 design/design_handoff_isq_agent/designs/prototype-hybrid/pngs
 
 # Upload testing
