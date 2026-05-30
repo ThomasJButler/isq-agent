@@ -56,7 +56,7 @@ export default function UploadPage(): JSX.Element {
       router.push(`/runs/${result.run_id}/results`);
     } catch {
       setError(
-        "Something went wrong processing that questionnaire. The backend may be busy — try again.",
+        "Something went wrong processing that questionnaire. The backend may be busy. Try again.",
       );
       setSubmitting(false);
     }

@@ -61,7 +61,7 @@ function ResultsStatus({ status }: { status: "loading" | "notfound" | "error" })
   const copy = {
     loading: "Loading run…",
     notfound:
-      "This run wasn't found — it may have expired (runs are kept in memory). Start a new one.",
+      "This run wasn't found. It may have expired (runs are kept in memory). Start a new one.",
     error: "The backend may be unreachable. Try again in a moment.",
   }[status];
   return (
