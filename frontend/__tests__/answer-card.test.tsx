@@ -8,7 +8,7 @@ import type { AnswerViewModel } from "@/lib/types";
 // confidence is nullable (a failed answer renders no score bar), and citations
 // are { id, snippet } with no page/source. The card is collapsible — the parent
 // owns `open` and toggles via onToggle — and the flagged variant gets the amber
-// left border (data-flagged hook) plus the review reason when expanded.
+// warning background (data-flagged hook) plus the review reason when expanded.
 
 const ANSWER: AnswerViewModel = {
   index: 1,
