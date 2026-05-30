@@ -307,7 +307,7 @@ export default function Home() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: "1 1 260px" }}>
             <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>
               Grounded, not generative.
             </div>
@@ -320,7 +320,8 @@ export default function Home() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "var(--space-6)",
+              flexWrap: "wrap",
+              gap: "var(--space-4) var(--space-6)",
               ...MONO,
               fontSize: 14,
             }}
