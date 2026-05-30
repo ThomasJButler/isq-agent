@@ -48,7 +48,7 @@ app = FastAPI(
         "Internal service for answering Information Security Questionnaire "
         "questions, grounded in Northstar Labs policies and historical responses."
     ),
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
