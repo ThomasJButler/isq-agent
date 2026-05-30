@@ -228,8 +228,6 @@ export default function Home() {
                     padding="md"
                     style={{
                       flex: "1 1 240px",
-                      borderLeftWidth: r.flag ? 3 : 1,
-                      borderLeftColor: r.flag ? "var(--warning)" : undefined,
                       background: r.flag ? "var(--warning-bg)" : "var(--surface)",
                     }}
                   >

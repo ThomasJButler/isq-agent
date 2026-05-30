@@ -121,8 +121,8 @@ interface AnswerCardProps {
 // confidence), confidence is nullable (a failed answer shows no score bar), and a
 // citation is { id, snippet } — the snippet is the tooltip, with no invented
 // page/source. The outer is a raw styled `.card` (not the Card primitive) because it
-// layers a flagged left-border / warning background and a `data-flagged` hook that a
-// generic Card wouldn't carry — the same hand-styled div the prototype writes.
+// layers a flagged warning background and a `data-flagged` hook that a generic Card
+// wouldn't carry — the same hand-styled div the prototype writes.
 export function AnswerCard({ answer, open, onToggle }: AnswerCardProps): JSX.Element {
   const flagged = answer.needs_review;
   const confidence = answer.confidence;
@@ -133,8 +133,6 @@ export function AnswerCard({ answer, open, onToggle }: AnswerCardProps): JSX.Ele
       data-flagged={flagged ? "true" : undefined}
       style={{
         padding: 0,
-        borderLeftWidth: flagged ? 3 : 1,
-        borderLeftColor: flagged ? "var(--warning)" : "var(--border)",
         background: flagged ? "var(--warning-bg)" : "var(--surface)",
         transition: "background 200ms var(--ease)",
         overflow: "hidden",
