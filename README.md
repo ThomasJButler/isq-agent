@@ -73,8 +73,10 @@ tier is n8n (port 5678), designed to drive the upload-to-download flow. The ship
 is the deployed dashboard: the Next.js frontend (Vercel) posts an uploaded questionnaire
 straight to the service (Render), which extracts, answers and renders it. The same engine is
 reachable through the service's own `/process-questionnaire` assembler, called by the packaged
-Claude Code skill or by `curl`, with n8n as the designed orchestration tier rather than the
-shipped one. Both tiers come up together under `docker compose`, every external dependency
+Claude Code skill or by `curl`. An **importable n8n workflow** that realises the orchestration
+tier (Form upload → `/runs` → render → deliver) lives in [`n8n/`](n8n/), with a node-by-node
+walkthrough. n8n drives the flow, the service is the engine it calls. Both tiers come up
+together under `docker compose`, every external dependency
 (Voyage, Pinecone, Claude) sits behind the service, and an `X-Request-Id` threads through so a
 single questionnaire run is traceable end to end.
 
