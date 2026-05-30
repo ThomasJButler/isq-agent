@@ -96,10 +96,52 @@ Every PR was reviewed by independent agents for bugs, CLAUDE.md adherence, and �
     not the app, whose real calls are all `POST → 200`. *Why it's here:* knowing what *isn't* a bug,
     and being able to prove it from the logs, is part of the job too.
 
+## Surfaced by the cross-model live test (v1.2)
+
+Testing every model — not just the default Sonnet — against real, example and adversarial documents
+surfaced a class of defect the Sonnet-only runs never hit.
+
+15. **Models don't honour the tool schema perfectly, and the newest ones deviate most.**
+    *How:* running the same documents through all six models. *Diagnosis:* forced tool-use guarantees
+    a tool *call*, not schema-*perfect* JSON. Opus 4.8 leaked its tool-call scaffolding into the answer
+    text (`...prose.</answer> <parameter name="citations">[...]`), shipping raw markup in the document
+    and dropping the citations into that text — so the answer rendered uncited yet still scored ~0.9 and
+    didn't flag; Haiku 4.5 returned citations as bare strings (which crashed the citation lint); Opus 4.8
+    sometimes omitted a self-score dimension (which crashed the strict aggregator). Sonnet 4.5/4.6 and
+    Opus 4.7 were clean, which is why earlier testing missed it. *Fix:* one anti-corruption layer at the
+    generator boundary — strip leaked scaffolding and recover the embedded citations (flag if it can't be
+    recovered), coerce citations to objects, fill and clamp the self-score. The aggregator stays strict;
+    the generator absorbs the variance. *Why it mattered:* the worst case was visible markup in the
+    deliverable, silently unflagged — exactly the failure the product exists to prevent. "Forced tool-use
+    returns schema-valid JSON" is true of the *call*, not of every field; the code now treats model output
+    as untrusted and normalises it.
+
+16. **DOCX upload was blocked, though the UI promised it and the backend supported it.**
+    *How:* trying to upload a `.docx` during testing. *Diagnosis:* the server already accepted
+    PDF/DOCX/XLSX and the upload screen said "Drop a blank ISQ (PDF, DOCX or XLSX)", but the client-side
+    dropzone allowlist only had `.pdf`/`.xlsx`, so a DOCX was rejected before it was ever sent. *Fix:* add
+    `.docx` to the single source-of-truth allowlist. *Why it mattered:* a brief-required input method, and
+    a contract mismatch between the UI's own promise and its gate.
+
+17. **Prompt injection bounced off the honesty layer (a finding, not a bug).**
+    *How:* an adversarial test document whose "questions" were literal `curl` commands aimed at the
+    service's own `/answer` endpoint, plus nonsense questions. *Result:* the command text was extracted as
+    plain question text, embedded for retrieval and passed to Claude as content — never executed (there is
+    no shell or eval path) — and the ungrounded ones hit the deterministic "cannot ground this, contact us"
+    refusal. 12 of 14 flagged. *Why it's here:* it's the security story made concrete — a grounded RAG
+    system answers an injected command with "I can't ground that", so the honesty layer *is* the injection
+    defence.
+
+18. **Smaller polish from the same session.** The upload "Backed by" tile was hardcoded to Sonnet 4.5
+    (it now reflects the picked model); the confidence flag threshold became env-overridable so its
+    sensitivity can be swept without a code change; and the heavy coloured left-border on result cards was
+    removed (flagged answers stay obvious via the warning background + the Review badge).
+
 ## The pattern
 
 Most of these share a shape: **work that's correct in isolation misbehaves once it's integrated,
-run at scale, or exposed to the public.** Unit tests don't catch a 4-minute wall-clock, a cosmetic
-control, a pre-parse buffering DoS, or a duration that only lies under concurrency. Running it for
-real and reviewing every change does. That's the difference between a thing that demos and a thing
-that works.
+run at scale, or exposed to the public — or to a model that doesn't quite conform.** Unit tests
+don't catch a 4-minute wall-clock, a cosmetic control, a pre-parse buffering DoS, a duration that
+only lies under concurrency, or a model that leaks its tool-call scaffolding into one field. Running
+it for real, across every model, and reviewing every change does. That's the difference between a
+thing that demos and a thing that works.
