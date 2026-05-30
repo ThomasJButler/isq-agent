@@ -12,14 +12,15 @@ export type UploadValidation =
   | { ok: true }
   | { ok: false; reason: "type" | "size"; message: string };
 
-/** Extensions the RAG service can ingest. Doubles as the Dropzone `accept` list. */
-export const ACCEPTED_EXTENSIONS = [".pdf", ".xlsx"] as const;
+/** Extensions the RAG service can ingest (backend `_SUPPORTED_SUFFIXES`). Doubles as
+ * the Dropzone `accept` list. The server extracts DOCX too, so the client must allow it. */
+export const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".xlsx"] as const;
 
 /** Size ceiling: 10 MiB, matching the prototype's `10 * 1024 * 1024` check. */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
-/** Shown when the file isn't a PDF or XLSX. Tom's voice; the prototype's exact words. */
-export const TYPE_ERROR_MESSAGE = "We couldn't read this file. Try a PDF or XLSX.";
+/** Shown when the file isn't a PDF, DOCX or XLSX. Tom's voice. */
+export const TYPE_ERROR_MESSAGE = "We couldn't read this file. Try a PDF, DOCX or XLSX.";
 
 /** Shown when the file is over the size ceiling. The prototype's exact words. */
 export const SIZE_ERROR_MESSAGE = "File is over 10 MB. Try a smaller file.";

@@ -16,7 +16,7 @@ import { ACCEPTED_EXTENSIONS, validateUpload } from "@/lib/validate";
 // Controlled upload zone, a faithful port of the prototype's <Dropzone>
 // (components.jsx:173): the parent owns `file` and `error`, and the zone reports
 // up via onFile / onError / onRemove. The accept check is delegated to Slice 5's
-// validateUpload — the single source of truth for the .pdf/.xlsx + 10 MB rules
+// validateUpload — the single source of truth for the .pdf/.docx/.xlsx + 10 MB rules
 // and the exact error copy — instead of re-inlining the prototype's regex/size
 // guard. The selected-file panel reuses Slice 8's <Card> and the Remove control
 // is the Slice 7 ghost <Button>. The visual states (dashed zone, dragging/error
@@ -96,6 +96,15 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// A friendly file-type label by extension, used when the browser gives no MIME
+// type (e.g. a drag-drop or one of /upload's lightweight example descriptors).
+function labelForExtension(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".xlsx")) return "Excel";
+  if (lower.endsWith(".docx")) return "Word";
+  return "PDF";
+}
+
 export function Dropzone({ file, onFile, onRemove, onError, error }: DropzoneProps): JSX.Element {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +152,7 @@ export function Dropzone({ file, onFile, onRemove, onError, error }: DropzonePro
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
             {formatBytes(file.size)} ·{" "}
-            {file.type || (file.name.toLowerCase().endsWith(".xlsx") ? "Excel" : "PDF")}
+            {file.type || labelForExtension(file.name)}
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={onRemove}>
@@ -203,7 +212,7 @@ export function Dropzone({ file, onFile, onRemove, onError, error }: DropzonePro
             Drop a questionnaire here, or click to browse.
           </div>
           <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-            PDF or XLSX. Up to 10 MB.
+            PDF, DOCX or XLSX. Up to 10 MB.
           </div>
         </div>
       </div>
