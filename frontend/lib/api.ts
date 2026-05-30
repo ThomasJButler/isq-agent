@@ -26,6 +26,9 @@ export interface CreateRunInput {
   filename: string;
   origin: string;
   source: RunSource;
+  /** Optional Anthropic model id for answer generation (the picked model). The backend
+   *  validates it against an allowlist and falls back to its default if absent/invalid. */
+  model?: string;
 }
 
 interface ExtractedQuestion {
@@ -76,6 +79,7 @@ export async function createRun(
         text: q.text,
         index: q.index,
       })),
+      ...(input.model ? { model: input.model } : {}),
     }),
   });
   if (!processRes.ok) {
@@ -93,10 +97,12 @@ export async function createRun(
  */
 export async function uploadRun(
   file: File,
+  model?: string,
   baseUrl: string = API_BASE,
 ): Promise<{ run_id: string; envelope: CanonicalEnvelope }> {
   const form = new FormData();
   form.append("file", file);
+  if (model) form.append("model", model);
   const res = await fetch(`${baseUrl}/runs`, { method: "POST", body: form });
   if (!res.ok) {
     throw new Error(`Upload failed (${res.status}).`);

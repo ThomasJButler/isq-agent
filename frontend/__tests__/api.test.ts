@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createRun, fetchRun, RunNotFoundError } from "@/lib/api";
+import { createRun, fetchRun, RunNotFoundError, uploadRun } from "@/lib/api";
 import type { CanonicalEnvelope } from "@/lib/types";
 
 const ENVELOPE = {
@@ -110,6 +110,34 @@ describe("createRun", () => {
     expect(result.envelope.questionnaire_meta.origin).toBe("Sunflowers Charity");
   });
 
+  it("includes the picked model in the process body when provided, and omits it otherwise", async () => {
+    const extracted = {
+      questions: [{ question_id: "q1", index: 1, text: "Q?" }],
+      total: 1,
+      extraction_method: "llm",
+      warnings: [],
+      metrics: {},
+    };
+    const run = (model?: string) => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(extracted))
+        .mockResolvedValueOnce(jsonResponse(ENVELOPE));
+      vi.stubGlobal("fetch", fetchMock);
+      return createRun(
+        { filename: "x.pdf", origin: "X", source: { source_format: "pdf", source_text: "q" }, model },
+        "https://api.example.com",
+      ).then(() => {
+        const init = fetchMock.mock.calls[1][1] as RequestInit;
+        return JSON.parse(init.body as string).model;
+      });
+    };
+
+    expect(await run("claude-opus-4-8")).toBe("claude-opus-4-8");
+    vi.unstubAllGlobals();
+    expect(await run(undefined)).toBeUndefined();
+  });
+
   it("throws if extraction fails", async () => {
     vi.stubGlobal(
       "fetch",
@@ -125,5 +153,25 @@ describe("createRun", () => {
         "https://api.example.com",
       ),
     ).rejects.toThrow(/extract/i);
+  });
+});
+
+describe("uploadRun", () => {
+  it("posts the file to /runs and appends the picked model when provided", async () => {
+    const file = new File(["%PDF"], "isq.pdf", { type: "application/pdf" });
+
+    const withModel = vi.fn(async () => jsonResponse(ENVELOPE));
+    vi.stubGlobal("fetch", withModel);
+    await uploadRun(file, "claude-opus-4-8", "https://api.example.com");
+    const [url, init] = withModel.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.example.com/runs");
+    expect((init.body as FormData).get("model")).toBe("claude-opus-4-8");
+    expect((init.body as FormData).get("file")).toBeInstanceOf(File);
+
+    vi.unstubAllGlobals();
+    const noModel = vi.fn(async () => jsonResponse(ENVELOPE));
+    vi.stubGlobal("fetch", noModel);
+    await uploadRun(file, undefined, "https://api.example.com");
+    expect((noModel.mock.calls[0][1] as RequestInit & { body: FormData }).body.get("model")).toBeNull();
   });
 });
