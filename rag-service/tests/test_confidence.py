@@ -324,3 +324,41 @@ class TestServiceContractShape:
         assert isinstance(result.triggers_fired, list)
         # AGGREGATE_THRESHOLD is exported and usable as the documented flag cut-off.
         assert 0.0 < AGGREGATE_THRESHOLD < 1.0
+
+
+class TestConfigurableThresholds:
+    """The flag cut-offs are env-overridable (v1.2) so the sensitivity can be swept."""
+
+    def test_flag_thresholds_come_from_settings(self):
+        """The cut-offs are sourced from Settings, defaulting to the audited 0.6 / 0.5."""
+        from app.confidence import aggregator
+        from app.core.config import settings
+
+        assert aggregator.AGGREGATE_THRESHOLD == settings.confidence_flag_threshold
+        assert aggregator.CITES_POLICY_FLOOR == settings.cites_policy_floor
+        assert settings.confidence_flag_threshold == 0.6
+        assert settings.cites_policy_floor == 0.5
+
+    def test_lowering_the_threshold_clears_a_borderline_answer(self, monkeypatch):
+        """A 0.55 aggregate flags at the default 0.6 but clears once the threshold drops to
+        0.45 — the same override a Render env var would apply for a tuning sweep."""
+        from app.confidence import aggregator
+
+        score = {
+            "cites_policy": 0.55,  # above its 0.5 floor, so only the aggregate trigger is in play
+            "on_topic": 0.55,
+            "vendor_tone": 0.55,
+            "complete": 0.55,
+        }
+        flagged = aggregate_confidence(
+            self_score=score, top_chunk_score=0.9, llm_review_reason=None
+        )
+        assert flagged.needs_review  # 0.55 < default 0.6
+
+        monkeypatch.setattr(aggregator, "AGGREGATE_THRESHOLD", 0.45)
+        cleared = aggregate_confidence(
+            self_score=score, top_chunk_score=0.9, llm_review_reason=None
+        )
+        assert (
+            not cleared.needs_review
+        )  # 0.55 > 0.45, and cites_policy 0.55 ≥ its floor
