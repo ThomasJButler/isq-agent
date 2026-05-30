@@ -7,7 +7,7 @@
 - The Form Trigger needs no login (`N8N_BASIC_AUTH_ACTIVE=false` in `docker-compose.yml` for
   local use).
 
-If you later put an API key in front of the rag-service (a sensible production step — see
+If you later put an API key in front of the rag-service (a sensible production step, see
 `SECURITY.md`), add an **HTTP Header Auth** credential in n8n (header `Authorization`, value
 `Bearer <key>`) and attach it to the three HTTP Request nodes. Never commit the key; n8n stores
 credentials encrypted in its `~/.n8n` volume.

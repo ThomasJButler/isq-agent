@@ -1,15 +1,15 @@
-# n8n workflow — the orchestration tier
+# n8n workflow: the orchestration tier
 
 The ISQ Agent is two tiers: a **FastAPI `rag-service`** that owns all the AI work (extraction,
 retrieval, grounded generation, confidence scoring, rendering), and an **n8n** layer that
-orchestrates it — the "built using n8n or a similar workflow automation platform" the brief
-asks for. n8n drives the flow; the service is the engine it calls over HTTP, exactly the
+orchestrates it. That's the "built using n8n or a similar workflow automation platform" the
+brief asks for. n8n drives the flow; the service is the engine it calls over HTTP, exactly the
 "additional external tools" pattern the brief welcomes.
 
 This folder holds an importable **starting workflow** for the **manual dashboard upload** input
 method. It is verified to import cleanly into n8n (2.22.5); the last hop (file delivery) is the
-one piece worth finishing + confirming in the editor on a live submission — see "Finish in the
-editor" below.
+one piece worth finishing + confirming in the editor on a live submission (see "Finish in the
+editor" below).
 
 ## The flow
 
@@ -30,7 +30,7 @@ Form Trigger (upload a PDF/DOCX/XLSX)
 |---|---|---|
 | **Form Trigger** | `formTrigger` | Serves an upload form at `/form/isq-upload`. One required **file** field, `Questionnaire`, accepting `.pdf,.docx,.xlsx`. The uploaded file arrives as a binary on the item. |
 | **POST /runs (answer)** | `httpRequest` | Multipart POST to `/runs`: sends the uploaded file as the `file` part (`formBinaryData`, `inputDataFieldName: Questionnaire`) plus an `origin` text field. The service extracts the questions, answers them (concurrently), and returns the canonical envelope JSON. 5-minute timeout, since a big questionnaire is several LLM calls. |
-| **Render DOCX / XLSX / JSON** | `httpRequest` ×3 | Multipart POST to `/render`: a `format` text field (`docx`/`xlsx`/`json`) and an `envelope` field set to `={{ JSON.stringify($('POST /runs (answer)').item.json) }}` — the full envelope, stringified. `responseFormat: file` captures the returned attachment into a distinct binary property (`docx`/`xlsx`/`json`). |
+| **Render DOCX / XLSX / JSON** | `httpRequest` ×3 | Multipart POST to `/render`: a `format` text field (`docx`/`xlsx`/`json`) and an `envelope` field set to `={{ JSON.stringify($('POST /runs (answer)').item.json) }}`, the full envelope stringified. `responseFormat: file` captures the returned attachment into a distinct binary property (`docx`/`xlsx`/`json`). |
 | **Combine files** | `code` | Pulls each render node's binary onto a single item so the next node has all three. |
 | **Zip deliverables** | `compression` | Zips the three binaries into `isq-deliverables.zip`. |
 | **Deliver download** | `form` (completion) | Returns the zip to the browser as the form's completion. |

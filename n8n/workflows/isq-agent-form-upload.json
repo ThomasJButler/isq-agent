@@ -1,10 +1,10 @@
 {
   "id": "isqAgentFormUpload01",
-  "name": "ISQ Agent — form upload",
+  "name": "ISQ Agent: form upload",
   "nodes": [
     {
       "parameters": {
-        "formTitle": "ISQ Agent — upload a questionnaire",
+        "formTitle": "ISQ Agent: upload a questionnaire",
         "formDescription": "Upload a blank ISQ (PDF, DOCX or XLSX). The agent answers each question from Northstar Labs' policies and returns the completed documents.",
         "formFields": {
           "values": [
