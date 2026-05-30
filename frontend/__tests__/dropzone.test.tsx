@@ -34,7 +34,7 @@ describe("Dropzone", () => {
     const zone = screen.getByRole("button", { name: "Upload a questionnaire" });
     expect(zone).toHaveClass("dropzone");
     expect(screen.getByText(/Drop a questionnaire here/i)).toBeInTheDocument();
-    expect(screen.getByText(/PDF or XLSX/i)).toBeInTheDocument();
+    expect(screen.getByText(/PDF, DOCX or XLSX/i)).toBeInTheDocument();
   });
 
   it("calls onFile for a valid pick and surfaces no error", () => {
