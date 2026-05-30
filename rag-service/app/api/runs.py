@@ -1,19 +1,144 @@
-"""GET /runs/{id} — fetch a stored questionnaire run by id (v1.1 #18).
+"""Run endpoints (v1.1).
 
-The dashboard's results screen reads the run id from its URL and calls this to render
-real answers (replacing the build-time mock). The envelope returned is whatever
-/process-questionnaire stored — the same canonical shape every renderer consumes.
+- POST /runs        — ingest an uploaded questionnaire file (the dashboard upload path):
+                      extract its text, extract the questions, answer them, store the run.
+- GET  /runs/{id}   — fetch a stored run by id (the results screen reads this).
+
+POST /runs is the browser-driven equivalent of the n8n flow: the dashboard posts the raw
+PDF (or DOCX/XLSX) straight here, and the service reuses the same document_processor +
+QuestionExtractor + answer assembler the rest of the pipeline uses. The envelope returned
+is the canonical shape every renderer + the dashboard consume.
 """
 
+import logging
+import shutil
+import tempfile
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from anthropic import (
+    APIConnectionError,
+    APIError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
+from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile
 
+from app.api.process import ProcessQuestion, assemble_and_store_run
 from app.core.config import settings
 from app.core.rate_limit import limiter
+from app.extraction.extractor import QuestionExtractor, flatten_xlsx_to_text
 from app.runs.store import run_store
+from app.utils.document_processor import DocumentProcessingError, process_document
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Files the document_processor can read. PDF is the challenge's stated input; DOCX/XLSX
+# round it out for the historical-ISQ formats.
+_SUPPORTED_SUFFIXES = {".pdf", ".docx", ".xlsx"}
+
+# Transient Anthropic failures worth a retry (mirrors /extract-questions): map to 503.
+_TRANSIENT_LLM = (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
+
+
+@router.post("/runs")
+@limiter.limit(lambda: settings.rate_limit_heavy)
+async def create_run_from_file(
+    request: Request,
+    response: Response,
+    file: UploadFile = File(...),
+    origin: str = Form("Uploaded questionnaire"),
+) -> dict[str, Any]:
+    """Ingest an uploaded questionnaire end to end: extract text -> extract questions ->
+    answer -> store. Returns the canonical envelope (with run_id) for the dashboard to
+    navigate to. Cost-guarded by the upload-size cap (here) and the question cap (in the
+    shared assembler)."""
+    request_id = request.headers.get("x-request-id")
+    if request_id:
+        response.headers["X-Request-Id"] = request_id
+
+    # Cost/abuse guard: reject an oversized upload before reading it (v1.1).
+    max_bytes = settings.max_upload_mb * 1024 * 1024
+    if file.size is not None and file.size > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large; the limit is {settings.max_upload_mb} MB.",
+        )
+
+    filename = file.filename or "questionnaire"
+    suffix = Path(filename).suffix.lower()
+    if suffix not in _SUPPORTED_SUFFIXES:
+        raise HTTPException(
+            status_code=415,
+            detail="Unsupported file type. Upload a PDF, DOCX or XLSX questionnaire.",
+        )
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="isq-ingest-"))
+    try:
+        tmp_path = tmp_dir / f"upload{suffix}"
+        with open(tmp_path, "wb") as fh:
+            fh.write(await file.read())
+
+        try:
+            processed = process_document(tmp_path)
+        except (ValueError, DocumentProcessingError) as exc:
+            logger.error("Failed to read uploaded document", exc_info=True)
+            raise HTTPException(
+                status_code=422, detail=f"Couldn't read the document: {exc}"
+            ) from exc
+
+        # PDF/DOCX yield text directly; XLSX yields rows we flatten to text for extraction.
+        if processed.get("text"):
+            source_text = processed["text"]
+        elif processed.get("rows"):
+            source_text = flatten_xlsx_to_text(processed["rows"], filename)
+        else:
+            source_text = ""
+        if not source_text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="No text could be extracted from the document.",
+            )
+
+        try:
+            extracted = QuestionExtractor().extract(source_text, filename)
+        except _TRANSIENT_LLM as exc:
+            logger.error("Anthropic unavailable during extraction", exc_info=True)
+            raise HTTPException(
+                status_code=503,
+                detail="Question extraction temporarily unavailable. Retry shortly.",
+            ) from exc
+        except APIError as exc:
+            logger.error("Anthropic request failed during extraction", exc_info=True)
+            raise HTTPException(
+                status_code=502,
+                detail="Question extraction failed due to an upstream error.",
+            ) from exc
+
+        questions = [
+            ProcessQuestion(
+                question_id=q["question_id"], text=q["text"], index=q.get("index")
+            )
+            for q in extracted.get("questions", [])
+        ]
+        if not questions:
+            raise HTTPException(
+                status_code=422,
+                detail="No questions were found in the document.",
+            )
+
+        return assemble_and_store_run(
+            origin=origin, filename=filename, received_at=None, questions=questions
+        )
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 @router.get("/runs/{run_id}")

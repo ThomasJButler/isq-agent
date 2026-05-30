@@ -84,3 +84,68 @@ class TestProcessStoresRun:
         assert got.status_code == 200
         assert got.json()["questionnaire_meta"]["run_id"] == run_id
         assert got.json()["answers"][0]["answer"] == "Yes, we do."
+
+
+class TestCreateRunFromFile:
+    @patch("app.api.process.AnswerGenerator")
+    @patch("app.api.process.Retriever")
+    @patch("app.api.runs.QuestionExtractor")
+    @patch("app.api.runs.process_document")
+    def test_pdf_upload_runs_end_to_end(
+        self, mock_process_document, mock_extractor, mock_retriever, mock_generator
+    ):
+        # Mock the I/O seams: PDF text extraction, question extraction, retrieval, generation.
+        mock_process_document.return_value = {
+            "text": "1. Do you encrypt data at rest?",
+            "page_count": 1,
+            "pages": [],
+        }
+        mock_extractor.return_value.extract.return_value = {
+            "questions": [
+                {
+                    "question_id": "q1",
+                    "index": 1,
+                    "text": "Do you encrypt data at rest?",
+                }
+            ]
+        }
+        mock_retriever.return_value.retrieve.return_value = [
+            {"id": "c0", "score": 0.9, "metadata": {"text": "x"}}
+        ]
+        mock_generator.return_value.generate.return_value = _ok_result()
+
+        resp = client.post(
+            "/runs",
+            files={"file": ("sunflowers.pdf", b"%PDF-1.4 fake", "application/pdf")},
+        )
+        assert resp.status_code == 200
+        run_id = resp.json()["questionnaire_meta"]["run_id"]
+        assert run_id
+        assert resp.json()["answers"][0]["answer"] == "Yes, we do."
+
+        # The freshly created run is fetchable.
+        got = client.get(f"/runs/{run_id}")
+        assert got.status_code == 200
+        assert got.json()["questionnaire_meta"]["run_id"] == run_id
+
+    def test_rejects_unsupported_file_type(self):
+        resp = client.post(
+            "/runs", files={"file": ("notes.txt", b"hello", "text/plain")}
+        )
+        assert resp.status_code == 415
+
+    @patch("app.api.runs.QuestionExtractor")
+    @patch("app.api.runs.process_document")
+    def test_returns_422_when_no_questions_found(
+        self, mock_process_document, mock_extractor
+    ):
+        mock_process_document.return_value = {
+            "text": "some text",
+            "page_count": 1,
+            "pages": [],
+        }
+        mock_extractor.return_value.extract.return_value = {"questions": []}
+        resp = client.post(
+            "/runs", files={"file": ("empty.pdf", b"%PDF", "application/pdf")}
+        )
+        assert resp.status_code == 422
