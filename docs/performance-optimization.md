@@ -32,6 +32,18 @@ all sharing a root: **work that should happen once was happening once per questi
    keyword expansion — was using the same Sonnet model as answer generation (~5s) instead of
    fast Haiku (~1s), wasting ~4s on every question.
 
+### What were those Pinecone log lines?
+
+The `Discovering subpackages` / `Installing plugin inference` messages are the Pinecone
+Python SDK booting its **plugin system**. When you construct a Pinecone client, the SDK scans
+the installed `pinecone_plugins` namespace and registers the `inference` plugin. That is meant
+to happen **once per process**. Because the service built a brand-new Pinecone client for
+every question, it re-ran that whole discovery roughly twice per question, so a 20-question run
+produced ~40–100 of those lines and paid the discovery + client-setup cost each time. The lines
+were harmless in themselves, but they were the smoking gun: a client was being rebuilt on a hot
+path that should have reused a single shared one. Fixing the re-instantiation made the lines
+vanish *and* removed the repeated setup cost.
+
 The bottleneck was almost entirely **waiting on the Anthropic/Voyage/Pinecone APIs**
 (network-bound), not local CPU — which is exactly what makes it parallelisable.
 
@@ -40,6 +52,7 @@ The bottleneck was almost entirely **waiting on the Anthropic/Voyage/Pinecone AP
 | Change | Effect |
 |---|---|
 | **Shared client singletons** (`get_pinecone_client`, `get_voyage_client`) | Pinecone plugin discovery + client setup happen **once per process**, not per question. Kills the log noise and the repeated setup cost. |
+| **Pre-warm the singletons at startup** | Build the shared clients once, single-threaded, in the app lifespan, so the first (now concurrent) request doesn't race to construct them and re-run discovery. Robustly zero plugin-discovery on requests, and a faster first request. Best-effort: falls back to lazy init if a dependency is unreachable at boot, so it never blocks startup. |
 | **Concurrent answering** — bounded `ThreadPoolExecutor` (default 5) over the per-question work, order preserved | ~5 questions wait on the LLM at once instead of one. The dominant win. Each `_answer_one` already isolated its own failures, so a flaky question never breaks the pool. |
 | **Query rewriting on Haiku** (`anthropic_query_rewrite_model`) | ~5s → ~1s per question, and it aligns the code with what the UI always promised. |
 | **Quieten third-party loggers** (`pinecone_plugin_interface`, `httpx` → WARNING) | Belt-and-braces on the noise; app logs stay at INFO. |
@@ -67,6 +80,20 @@ it stopped the service from *waiting* in series. Correctness, grounding and the 
 flagging are untouched — verified by the full test suite and by re-running all three sample
 questionnaires across all five selectable models.
 
+**Being precise about the headline number.** The ~4 min was first hit on the hosted Render
+starter tier; the ~40s was measured on a faster local backend, so part of the absolute gap is
+hardware. The honest framing:
+
+- **~6× end to end** as experienced (240s → 40s).
+- **~5× like-for-like (same hardware).** The dominant fix — overlapping the LLM waits and
+  moving query rewrite to Haiku — is network-bound, not CPU-bound, so it carries across
+  machines: a sequential ~200s answering loop becomes ~40s.
+- **Estimated ~1 min on the live Render iteration** (a ~4× cut there), since the per-call API
+  latency dominates and Render's slower CPU barely touches network-bound waiting.
+
+Either way it's a near-order-of-magnitude win, and the structural cause (not the hardware) is
+what makes it real.
+
 ## What it cost in code
 
 ~500 lines of diff across the client wrappers, the retriever, the query rewriter, the
@@ -83,6 +110,9 @@ was structural (per-question re-work + serial waiting), not algorithmic.
   fan out unchecked against the Anthropic workspace rate limits. It's env-tunable.
 - **Cost-display token accounting** under concurrency uses a non-atomic counter for Voyage
   tokens; it's for display only, not billing, so a tiny race is acceptable.
-- **Further wins given more time:** a reranker pass, streaming per-question progress to the
-  UI (so the showcase reflects real state rather than an indicative animation), and batching
-  retrieval embeds.
+- **Further wins given more time (target: ~10s).** The next round would chase a sub-10s run:
+  raise concurrency toward the questionnaire size (with proper rate-limit backoff), batch the
+  per-question retrieval embeds into a single Voyage call, stream per-question progress to the
+  UI so the showcase reflects real state, and add a reranker so fewer-but-better chunks keep
+  the answer prompts short. The point of diminishing returns is real, though: most of the
+  remaining time is the model thinking, which a workflow can overlap but not remove.
