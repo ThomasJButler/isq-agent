@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
 from app.runs.store import run_store
 
@@ -84,3 +85,80 @@ class TestProcessStoresRun:
         assert got.status_code == 200
         assert got.json()["questionnaire_meta"]["run_id"] == run_id
         assert got.json()["answers"][0]["answer"] == "Yes, we do."
+
+
+class TestCreateRunFromFile:
+    @patch("app.api.process.AnswerGenerator")
+    @patch("app.api.process.Retriever")
+    @patch("app.api.runs.QuestionExtractor")
+    @patch("app.api.runs.process_document")
+    def test_pdf_upload_runs_end_to_end(
+        self, mock_process_document, mock_extractor, mock_retriever, mock_generator
+    ):
+        # Mock the I/O seams: PDF text extraction, question extraction, retrieval, generation.
+        mock_process_document.return_value = {
+            "text": "1. Do you encrypt data at rest?",
+            "page_count": 1,
+            "pages": [],
+        }
+        mock_extractor.return_value.extract.return_value = {
+            "questions": [
+                {
+                    "question_id": "q1",
+                    "index": 1,
+                    "text": "Do you encrypt data at rest?",
+                }
+            ]
+        }
+        mock_retriever.return_value.retrieve.return_value = [
+            {"id": "c0", "score": 0.9, "metadata": {"text": "x"}}
+        ]
+        mock_generator.return_value.generate.return_value = _ok_result()
+
+        resp = client.post(
+            "/runs",
+            files={"file": ("sunflowers.pdf", b"%PDF-1.4 fake", "application/pdf")},
+        )
+        assert resp.status_code == 200
+        run_id = resp.json()["questionnaire_meta"]["run_id"]
+        assert run_id
+        assert resp.json()["answers"][0]["answer"] == "Yes, we do."
+
+        # The freshly created run is fetchable.
+        got = client.get(f"/runs/{run_id}")
+        assert got.status_code == 200
+        assert got.json()["questionnaire_meta"]["run_id"] == run_id
+
+    def test_rejects_unsupported_file_type(self):
+        resp = client.post(
+            "/runs", files={"file": ("notes.txt", b"hello", "text/plain")}
+        )
+        assert resp.status_code == 415
+
+    def test_rejects_oversized_upload(self, monkeypatch):
+        # End-to-end: an oversized upload is rejected with 413 before any extraction or
+        # answering runs. Enforcement lives in MaxBodySizeMiddleware on the raw ASGI body
+        # (see test_body_limit.py); here we confirm the wired-up app honours it on /runs
+        # via the request's Content-Length (v1.1 cost guard, #36 review fix).
+        monkeypatch.setattr(settings, "max_upload_mb", 0.001)  # ~1 KB cap
+        oversized = b"%PDF-1.4 " + b"A" * (20 * 1024)
+        resp = client.post(
+            "/runs", files={"file": ("big.pdf", oversized, "application/pdf")}
+        )
+        assert resp.status_code == 413
+
+    @patch("app.api.runs.QuestionExtractor")
+    @patch("app.api.runs.process_document")
+    def test_returns_422_when_no_questions_found(
+        self, mock_process_document, mock_extractor
+    ):
+        mock_process_document.return_value = {
+            "text": "some text",
+            "page_count": 1,
+            "pages": [],
+        }
+        mock_extractor.return_value.extract.return_value = {"questions": []}
+        resp = client.post(
+            "/runs", files={"file": ("empty.pdf", b"%PDF", "application/pdf")}
+        )
+        assert resp.status_code == 422

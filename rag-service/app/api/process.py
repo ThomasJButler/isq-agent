@@ -163,45 +163,43 @@ def _to_summary_metrics(summary: ISQSummary) -> dict[str, Any]:
     }
 
 
-@router.post("/process-questionnaire", response_model=ProcessResponse)
-@limiter.limit(lambda: settings.rate_limit_heavy)
-def process_questionnaire(
-    payload: ProcessRequest, request: Request, response: Response
+def assemble_and_store_run(
+    origin: str,
+    filename: str,
+    received_at: str | None,
+    questions: list[ProcessQuestion],
 ) -> dict[str, Any]:
-    """Answer every question and assemble the canonical envelope. See module docstring."""
-    request_id = request.headers.get("x-request-id")
-    if request_id:
-        response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
-
-    # Cost guard: cap the number of questions before any retrieval/generation, so a
-    # huge questionnaire can't fan out into thousands of LLM calls (v1.1).
-    if len(payload.questions) > settings.max_questions:
+    """Answer every question, assemble the canonical envelope, and persist it under a new
+    run_id. Shared by POST /process-questionnaire (questions supplied as JSON) and POST
+    /runs (questions extracted from an uploaded file). Enforces the question cap first so
+    a huge questionnaire can't fan out into thousands of LLM calls (v1.1 cost guard)."""
+    if len(questions) > settings.max_questions:
         raise HTTPException(
             status_code=413,
             detail=(
-                f"Too many questions ({len(payload.questions)}); the limit is "
+                f"Too many questions ({len(questions)}); the limit is "
                 f"{settings.max_questions}. Split the questionnaire and retry."
             ),
         )
 
-    total = len(payload.questions)
+    total = len(questions)
     answers = [
         _answer_one(
             question,
             index=question.index if question.index is not None else position,
             total=total,
         )
-        for position, question in enumerate(payload.questions, start=1)
+        for position, question in enumerate(questions, start=1)
     ]
 
     summary = summarise(answers)
-    run_id = make_run_id(payload.filename)
+    run_id = make_run_id(filename)
     envelope = {
         "questionnaire_meta": {
             "run_id": run_id,
-            "origin": payload.origin,
-            "filename": payload.filename,
-            "received_at": payload.received_at,
+            "origin": origin,
+            "filename": filename,
+            "received_at": received_at,
             "completed_at": datetime.now(timezone.utc).isoformat(),
             "total_questions": summary.total_questions,
         },
@@ -211,3 +209,17 @@ def process_questionnaire(
     # Persist so the dashboard can fetch it back via GET /runs/{run_id} (v1.1 #18).
     run_store.save(run_id, envelope)
     return envelope
+
+
+@router.post("/process-questionnaire", response_model=ProcessResponse)
+@limiter.limit(lambda: settings.rate_limit_heavy)
+def process_questionnaire(
+    payload: ProcessRequest, request: Request, response: Response
+) -> dict[str, Any]:
+    """Answer every question and assemble the canonical envelope. See module docstring."""
+    request_id = request.headers.get("x-request-id")
+    if request_id:
+        response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
+    return assemble_and_store_run(
+        payload.origin, payload.filename, payload.received_at, payload.questions
+    )
