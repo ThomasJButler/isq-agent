@@ -20,7 +20,7 @@ honest notes where something is a scaffold rather than a fully-run path.
 |---|---|
 | Prefer official policy documents | Source weighting puts policies (×1.0) above historical ISQs (×0.95) before the score floor; the prompt instructs policy-first. |
 | Use previous completed ISQs where relevant | Historical ISQs are indexed alongside policies and cited when they're the best match. |
-| Avoid unsupported claims | Strict grounding prompt + a **citation lint** that docks any cited source the model didn't actually receive; no-chunks → a deterministic "contact us" answer, never an invented one. |
+| Avoid unsupported claims | Strict grounding prompt + a **citation lint** that penalises the grounding score (−0.2 on `cites_policy`) for any cited source the model wasn't actually given, pushing it toward the review flag; no-chunks → a deterministic "contact us" answer, never an invented one. |
 | Mark uncertain answers as needing review | The flagging above; `needs_review` + a human-readable reason on every flagged answer. |
 | Concise but professional | A `vendor_tone` confidence dimension + the answer prompt; verified on real runs (vendor-appropriate prose with citations). |
 | Appropriate client/vendor tone | Same; answers read as supplier security responses, and honestly reframe out-of-scope questions (e.g. "Northstar is software-only, no OT/SCADA"). |
@@ -62,6 +62,6 @@ honest notes where something is a scaffold rather than a fully-run path.
 
 Not asked for, but done because the brief says "work well, be honest": per-IP rate limiting + a
 question cap + an ASGI body-size cap (cost/abuse guards, `SECURITY.md`); a ~6× performance pass
-([`performance-optimisation.md`](performance-optimisation.md)); ~280 tests; every PR independently
-reviewed for bugs **and** brief-compliance; and a catalogue of the unplanned fixes found along the
-way ([`unplanned-fixes.md`](unplanned-fixes.md)).
+([`performance-optimisation.md`](performance-optimisation.md)); ~280 backend tests (plus the
+frontend suite); every PR independently reviewed for bugs **and** brief-compliance; and a catalogue
+of the unplanned fixes found along the way ([`unplanned-fixes.md`](unplanned-fixes.md)).

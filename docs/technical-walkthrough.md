@@ -18,7 +18,8 @@ importable orchestration tier.
 The five design decisions that matter most (detail in `architecture.md`): the two-tier split;
 **hybrid confidence** (model self-score + a retrieval sanity check); **source weighting applied in
 code, before the score floor**; **deterministic vector IDs** so re-indexing is idempotent; and an
-`X-Request-Id` that threads through both tiers for traceability.
+`X-Request-Id` the service echoes on every response for traceability (the dashboard threads it end
+to end; the n8n scaffold doesn't forward it yet).
 
 ## 2. How documents are processed and analysed
 
@@ -52,9 +53,11 @@ the model must return schema-valid JSON — the answer, the citations it used, a
 four-dimension self-score. The system prompt is strict: **use only the chunks provided, prefer
 policies over old answers, never invent, score yourself.** The static rules + worked examples are
 marked for **prompt caching**, so questions 2..N of a run re-read them cheaply. A **citation lint**
-then docks any cited `source_id` the model wasn't actually given — a second line of defence against
-invented citations. The generation model is **selectable** (Sonnet 4.5/4.6, Opus 4.7/4.8, Haiku
-4.5); query rewriting always stays on Haiku.
+then **docks the grounding score** (a fixed −0.2 on the `cites_policy` dimension) for any
+`source_id` the model cited but wasn't actually handed — the citation still shows, but the answer is
+pushed toward the review flag, a second line of defence against invented citations. The generation
+model is **selectable** (Sonnet 4.5/4.6, Opus 4.7/4.8, Haiku 4.5); query rewriting always stays on
+Haiku.
 
 ## 5. How unsupported or low-confidence answers are handled
 
