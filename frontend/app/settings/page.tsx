@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -16,33 +16,50 @@ import { CheckIcon, DatabaseIcon, RefreshIcon, SlidersIcon, SparkIcon } from "@/
 // radio + slider accents are river-blue, not orange. Local useState only.
 
 interface ModelOption {
+  /** Stable UI id (the radio value). */
   id: string;
+  /** The real Anthropic model id sent to the backend for answer generation. */
+  model: string;
   title: string;
   meta: string;
   desc: string;
 }
 
+// The chosen model's real id is persisted here and read by the upload flow.
+const MODEL_STORAGE_KEY = "isq-model";
+
 const MODEL_OPTIONS: ModelOption[] = [
   {
     id: "sonnet",
+    model: "claude-sonnet-4-5",
     title: "Claude Sonnet 4.5",
-    meta: "default · slower · ~$0.004/q",
-    desc: "Best quality. Use for customer-facing ISQs.",
+    meta: "default · ~$0.004/q",
+    desc: "Strong quality for most ISQs. The default.",
   },
   {
     id: "sonnet-4-6",
+    model: "claude-sonnet-4-6",
     title: "Claude Sonnet 4.6",
     meta: "newer Sonnet · ~$0.004/q",
     desc: "Latest Sonnet tier, same price as 4.5.",
   },
   {
+    id: "opus-4-8",
+    model: "claude-opus-4-8",
+    title: "Claude Opus 4.8",
+    meta: "newest · highest quality · ~$0.02/q",
+    desc: "The most capable model. Use for the hardest, highest-stakes ISQs.",
+  },
+  {
     id: "opus-4-7",
+    model: "claude-opus-4-7",
     title: "Claude Opus 4.7",
-    meta: "highest quality · ~$0.02/q",
-    desc: "Use for the hardest, highest-stakes ISQs.",
+    meta: "previous top tier · ~$0.02/q",
+    desc: "The prior Opus generation.",
   },
   {
     id: "haiku",
+    model: "claude-haiku-4-5",
     title: "Claude Haiku 4.5",
     meta: "fast · ~$0.0008/q",
     desc: "Use for batch backfill or non-critical runs.",
@@ -57,6 +74,17 @@ export default function SettingsPage() {
   const [reindexed, setReindexed] = useState(false);
   const [toast, setToast] = useState(false);
 
+  // Restore the saved model after mount. This can't be a lazy useState initializer: it would
+  // run during SSR where localStorage is undefined, and the client would then hydrate with the
+  // server's value rather than the stored one. A one-time read-from-external-store on mount is
+  // the correct use of an effect here, so the synchronous-setState rule is suppressed.
+  useEffect(() => {
+    const saved = localStorage.getItem(MODEL_STORAGE_KEY);
+    const match = MODEL_OPTIONS.find((o) => o.model === saved);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (match) setModel(match.id);
+  }, []);
+
   const reindex = () => {
     setReindexing(true);
     // Simulated work until the live POST /index is wired (§8 glue).
@@ -66,9 +94,11 @@ export default function SettingsPage() {
     }, 1600);
   };
 
-  // Mock save: no persistence and no logging of key values (secrets stay in the
-  // input only). The real save against the service is the §8 glue step.
+  // Persist the picked model so the upload flow sends it with each run. The threshold is
+  // display-only for now (the flag threshold lives server-side); the model is the live wire.
   const save = () => {
+    const chosen = MODEL_OPTIONS.find((o) => o.id === model);
+    if (chosen) localStorage.setItem(MODEL_STORAGE_KEY, chosen.model);
     setToast(true);
     setTimeout(() => setToast(false), 2200);
   };
