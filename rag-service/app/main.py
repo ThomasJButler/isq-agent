@@ -25,6 +25,11 @@ logging.basicConfig(
     format='{"ts":"%(asctime)s","level":"%(levelname)s","module":"%(name)s","msg":"%(message)s"}',
     stream=sys.stdout,
 )
+# Quieten chatty third-party INFO loggers that otherwise dominate a run's logs: the Pinecone
+# SDK announces plugin discovery on every client init, and httpx logs every outbound request.
+# Our own app.* logs stay at INFO.
+for _noisy in ("pinecone_plugin_interface", "pinecone", "httpx"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 

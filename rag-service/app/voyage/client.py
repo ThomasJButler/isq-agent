@@ -57,3 +57,18 @@ class VoyageClient:
     def get_cost_estimate(self) -> float:
         """Return cumulative cost in USD based on self.tokens_used."""
         return (self.tokens_used / 1_000_000) * self.COST_PER_MILLION_TOKENS
+
+
+# Process-wide singleton so the retriever doesn't build a new Voyage client per question.
+# Sharing it also means tokens_used accumulates across a whole run rather than being thrown
+# away each question (the += is not atomic under concurrency, but the count is for cost
+# display only, not correctness).
+_voyage_client: Optional["VoyageClient"] = None
+
+
+def get_voyage_client() -> "VoyageClient":
+    """Return the shared VoyageClient, constructing it on first use."""
+    global _voyage_client
+    if _voyage_client is None:
+        _voyage_client = VoyageClient()
+    return _voyage_client

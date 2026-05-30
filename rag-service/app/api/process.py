@@ -20,6 +20,8 @@ mapping between the two lives here (see _to_summary_metrics).
 """
 
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any
 
@@ -28,7 +30,7 @@ from pydantic import BaseModel
 
 from app.confidence.aggregator import aggregate_confidence
 from app.confidence.summary import ISQSummary, summarise
-from app.core.config import settings
+from app.core.config import resolve_generation_model, settings
 from app.core.rate_limit import limiter
 from app.rag.generator import AnswerGenerator
 from app.rag.retriever import Retriever
@@ -56,6 +58,9 @@ class ProcessRequest(BaseModel):
     filename: str
     received_at: str | None = None
     questions: list[ProcessQuestion]
+    # Optional answer-generation model (the dashboard model picker). Validated against the
+    # allowlist; an unknown/None value falls back to the configured default.
+    model: str | None = None
 
 
 class CanonicalConfidence(BaseModel):
@@ -109,12 +114,15 @@ class ProcessResponse(BaseModel):
     summary_metrics: SummaryMetrics
 
 
-def _answer_one(question: ProcessQuestion, index: int, total: int) -> dict[str, Any]:
+def _answer_one(
+    question: ProcessQuestion, index: int, total: int, model: str
+) -> dict[str, Any]:
     """Answer a single question, mirroring the /answer pipeline. On failure, return an
-    entry with confidence=None so the caller can keep going and summarise() flags it."""
+    entry with confidence=None so the caller can keep going and summarise() flags it.
+    Pure + self-contained (catches its own errors), so it's safe to run in a thread pool."""
     try:
         chunks = Retriever().retrieve(question.text)
-        result = AnswerGenerator().generate(
+        result = AnswerGenerator(model=model).generate(
             question.text, chunks, index=index, total=total
         )
         confidence = aggregate_confidence(
@@ -168,11 +176,17 @@ def assemble_and_store_run(
     filename: str,
     received_at: str | None,
     questions: list[ProcessQuestion],
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Answer every question, assemble the canonical envelope, and persist it under a new
     run_id. Shared by POST /process-questionnaire (questions supplied as JSON) and POST
     /runs (questions extracted from an uploaded file). Enforces the question cap first so
-    a huge questionnaire can't fan out into thousands of LLM calls (v1.1 cost guard)."""
+    a huge questionnaire can't fan out into thousands of LLM calls (v1.1 cost guard).
+
+    `model` is the requested answer-generation model (validated against the allowlist; bad
+    or absent falls back to the default). Questions are answered CONCURRENTLY up to
+    settings.answer_concurrency — each _answer_one isolates its own failure, so a flaky
+    question never breaks the pool, and ordering is preserved (v1.2 perf)."""
     if len(questions) > settings.max_questions:
         raise HTTPException(
             status_code=413,
@@ -183,16 +197,35 @@ def assemble_and_store_run(
         )
 
     total = len(questions)
-    answers = [
-        _answer_one(
+    resolved_model = resolve_generation_model(model)
+
+    def _work(item: tuple[int, ProcessQuestion]) -> dict[str, Any]:
+        position, question = item
+        return _answer_one(
             question,
             index=question.index if question.index is not None else position,
             total=total,
+            model=resolved_model,
         )
-        for position, question in enumerate(questions, start=1)
-    ]
+
+    items = list(enumerate(questions, start=1))
+    workers = min(settings.answer_concurrency, total) if total else 1
+    started = time.monotonic()
+    if workers <= 1:
+        answers = [_work(item) for item in items]
+    else:
+        # ThreadPoolExecutor.map preserves input order, so answers line up with questions.
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            answers = list(pool.map(_work, items))
+    wall_clock_ms = (time.monotonic() - started) * 1000.0
 
     summary = summarise(answers)
+    summary_metrics = _to_summary_metrics(summary)
+    # Report the real wall-clock answering time as the run duration. The per-question
+    # latencies still sum to more than this (questions run concurrently), and they remain
+    # in each answer's metrics — but the user-facing duration should be how long they
+    # actually waited, not the summed compute time.
+    summary_metrics["total_latency_ms"] = round(wall_clock_ms, 2)
     run_id = make_run_id(filename)
     envelope = {
         "questionnaire_meta": {
@@ -204,7 +237,7 @@ def assemble_and_store_run(
             "total_questions": summary.total_questions,
         },
         "answers": answers,
-        "summary_metrics": _to_summary_metrics(summary),
+        "summary_metrics": summary_metrics,
     }
     # Persist so the dashboard can fetch it back via GET /runs/{run_id} (v1.1 #18).
     run_store.save(run_id, envelope)
@@ -221,5 +254,9 @@ def process_questionnaire(
     if request_id:
         response.headers["X-Request-Id"] = request_id  # echo for n8n correlation
     return assemble_and_store_run(
-        payload.origin, payload.filename, payload.received_at, payload.questions
+        payload.origin,
+        payload.filename,
+        payload.received_at,
+        payload.questions,
+        model=payload.model,
     )

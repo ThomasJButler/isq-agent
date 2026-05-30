@@ -60,6 +60,7 @@ async def create_run_from_file(
     response: Response,
     file: UploadFile = File(...),
     origin: str = Form("Uploaded questionnaire"),
+    model: str | None = Form(None),
 ) -> dict[str, Any]:
     """Ingest an uploaded questionnaire end to end: extract text -> extract questions ->
     answer -> store. Returns the canonical envelope (with run_id) for the dashboard to
@@ -154,6 +155,7 @@ async def create_run_from_file(
             filename=filename,
             received_at=None,
             questions=questions,
+            model=model,
         )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

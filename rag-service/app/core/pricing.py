@@ -18,6 +18,8 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "claude-sonnet-4-5": (3.0, 15.0),
     "claude-sonnet-4-6": (3.0, 15.0),  # same Sonnet tier; confirm in console
     "claude-opus-4-7": (15.0, 75.0),  # Opus tier list pricing; confirm in console
+    "claude-opus-4-8": (15.0, 75.0),  # same Opus tier as 4.7; confirm in console
+    "claude-haiku-4-5": (1.0, 5.0),  # Haiku tier; confirm in console
 }
 
 
