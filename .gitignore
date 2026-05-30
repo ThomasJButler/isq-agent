@@ -9,6 +9,9 @@
 source-corpus/*
 !source-corpus/README.md
 
+# ---------- RiverAI source project files + private demo material (Tom only) ----------
+docs/projectfilesfromzips/
+
 # ---------- Python ----------
 __pycache__/
 *.py[cod]
