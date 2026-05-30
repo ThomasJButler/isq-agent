@@ -47,7 +47,7 @@ describe("UploadPage — structure", () => {
     render(<UploadPage />);
     expect(screen.getByRole("heading", { name: "Upload questionnaire" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload a questionnaire" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Sunflowers Charity/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Northwind Pay/ })).toBeInTheDocument();
     expect(screen.getByText("What happens next")).toBeInTheDocument();
     expect(screen.getByText("isq-agent@northstar.example")).toBeInTheDocument();
   });
@@ -68,12 +68,12 @@ describe("UploadPage — the Start CTA gates on a selection", () => {
 describe("UploadPage — example shortcuts", () => {
   it("selects the example, shows its filename, hides the examples, and enables the CTA", () => {
     render(<UploadPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Northwind Pay/ }));
 
     expect(
-      screen.getByText("Sunflowers_Charity_Supplier_ISQ_Questionnaire.pdf"),
+      screen.getByText("Northwind_Pay_Supplier_Security_Questionnaire.pdf"),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Blackridge/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Caldera Health/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start processing" })).not.toBeDisabled();
   });
 });
@@ -97,7 +97,7 @@ describe("UploadPage — submit runs the questionnaire and routes to its results
   it("an example runs via createRun and routes to the real run's results", async () => {
     createRun.mockResolvedValue({ run_id: "sunflowers-1a2b3c", envelope: {} });
     render(<UploadPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Northwind Pay/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
 
     // The processing state shows while the backend answers.
@@ -124,7 +124,7 @@ describe("UploadPage — submit runs the questionnaire and routes to its results
   it("surfaces an error and recovers if the run fails", async () => {
     createRun.mockRejectedValue(new Error("backend down"));
     render(<UploadPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Sunflowers Charity/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Northwind Pay/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/went wrong/i);
