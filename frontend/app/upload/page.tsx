@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type CSSProperties, type JSX } from "react";
+import { useEffect, useState, type CSSProperties, type JSX } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Dropzone, type SelectedFile } from "@/components/Dropzone";
 import { ErrorBanner } from "@/components/ErrorBanner";
-import { Spinner } from "@/components/Spinner";
+import { ProcessingShowcase } from "@/components/ProcessingShowcase";
 import { ArrowRightIcon, EmailIcon, FileIcon } from "@/components/icons";
 import { createRun, uploadRun } from "@/lib/api";
 import { EXAMPLES, type ExampleQuestionnaire } from "@/lib/examples";
@@ -32,6 +32,21 @@ export default function UploadPage(): JSX.Element {
   const [example, setExample] = useState<ExampleQuestionnaire | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+
+  // While the run is in flight, advance a local clock to drive the processing showcase. A
+  // tick accumulator (not Date/performance.now) keeps it deterministic and SSR-safe. The
+  // reset lives in start() (the handler) rather than here, so no setState runs synchronously
+  // inside the effect body.
+  useEffect(() => {
+    if (!submitting) return;
+    let acc = 0;
+    const t = setInterval(() => {
+      acc += 100;
+      setElapsed(acc);
+    }, 100);
+    return () => clearInterval(t);
+  }, [submitting]);
 
   // The dropzone shows whichever is selected — a real File (which already satisfies
   // SelectedFile) or a descriptor for the chosen example.
@@ -43,15 +58,23 @@ export default function UploadPage(): JSX.Element {
 
   const start = async () => {
     if (!file && !example) return;
+    setElapsed(0);
     setSubmitting(true);
     setError(undefined);
     try {
+      // The model the user picked in Settings (persisted to localStorage). Absent/invalid
+      // falls back to the backend default; query rewriting always stays on Haiku.
+      const model =
+        typeof window !== "undefined"
+          ? (localStorage.getItem("isq-model") ?? undefined)
+          : undefined;
       const result = file
-        ? await uploadRun(file)
+        ? await uploadRun(file, model)
         : await createRun({
             filename: example!.filename,
             origin: example!.origin,
             source: example!.source,
+            model,
           });
       router.push(`/runs/${result.run_id}/results`);
     } catch {
@@ -62,20 +85,20 @@ export default function UploadPage(): JSX.Element {
     }
   };
 
-  // While the backend reads + answers the questionnaire (~under a minute), show a calm
-  // processing state rather than a long-disabled button.
+  // While the backend reads + answers the questionnaire (~under a minute), show the pipeline
+  // showcase rather than a long-disabled button. It's an indicative animation (the backend
+  // answers in one call and doesn't stream progress); we navigate to results the moment the
+  // real run resolves, so it holds at "answering" (maxStage 2) until then.
   if (submitting) {
     return (
       <div data-screen-label="02 Upload">
-        <div style={{ ...CONTAINER, paddingTop: 120, paddingBottom: 120, textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-            <Spinner size={18} />
-            <span style={{ fontSize: 16, fontWeight: 600 }}>Answering your questionnaire…</span>
-          </div>
-          <p className="muted" style={{ fontSize: 14, maxWidth: 460, margin: "0 auto" }}>
-            Reading the document, extracting each question, and grounding an answer in Northstar
-            Labs&apos; policies. Most ISQs finish in under a minute.
-          </p>
+        <div style={{ ...CONTAINER, maxWidth: 880, paddingTop: 48, paddingBottom: 80 }}>
+          <ProcessingShowcase
+            elapsed={elapsed}
+            total={20}
+            runLabel={file ? file.name : example?.filename}
+            maxStage={2}
+          />
         </div>
       </div>
     );

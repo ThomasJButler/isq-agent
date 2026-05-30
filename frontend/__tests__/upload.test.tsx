@@ -100,8 +100,9 @@ describe("UploadPage — submit runs the questionnaire and routes to its results
     fireEvent.click(screen.getByRole("button", { name: /Northwind Pay/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start processing" }));
 
-    // The processing state shows while the backend answers.
-    expect(screen.getByText("Answering your questionnaire…")).toBeInTheDocument();
+    // The processing showcase shows while the backend answers.
+    expect(screen.getByText("Answering your questionnaire")).toBeInTheDocument();
+    expect(screen.getByText("Pipeline")).toBeInTheDocument();
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/runs/sunflowers-1a2b3c/results"));
     expect(createRun).toHaveBeenCalledTimes(1);
