@@ -16,7 +16,9 @@ from slowapi.errors import RateLimitExceeded
 from app.api import answer, extract, health, index, process, render, runs
 from app.core.body_limit import MaxBodySizeMiddleware
 from app.core.config import settings
+from app.core.pinecone_client import get_pinecone_client
 from app.core.rate_limit import limiter
+from app.voyage.client import get_voyage_client
 
 
 # Structured logging — JSON-style for production parseability
@@ -40,6 +42,18 @@ async def lifespan(app: FastAPI):
     logger.info(f"RAG service starting — embedding model: {settings.voyage_model}")
     logger.info(f"RAG service starting — pinecone index: {settings.pinecone_index}")
     logger.info(f"RAG service starting — LLM model: {settings.anthropic_model}")
+
+    # Build the shared Pinecone + Voyage clients once, single-threaded, at startup so the
+    # first (possibly concurrent) request doesn't race to construct them and re-run plugin
+    # discovery. Best-effort: if a dependency is unreachable now, fall back to lazy init on
+    # first use rather than failing startup.
+    try:
+        get_pinecone_client()
+        get_voyage_client()
+    except Exception:
+        logger.warning(
+            "Client pre-warm skipped; will init lazily on first use", exc_info=True
+        )
 
     yield  # service is running
 
