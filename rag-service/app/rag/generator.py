@@ -13,7 +13,9 @@ questions 2..N of an ISQ re-read it cheaply instead of re-sending the bulk of th
 prompt tokens.
 """
 
+import json
 import logging
+import re
 import time
 from typing import Any
 
@@ -40,6 +42,83 @@ _NO_SOURCE_ANSWER = (
     "Northstar Labs cannot provide a grounded answer to this question from our "
     "published policy documents. Please contact us directly to discuss this area."
 )
+
+# The four self-score dimensions the confidence aggregator requires (and their order).
+_SCORE_DIMENSIONS = ("cites_policy", "on_topic", "vendor_tone", "complete")
+
+# Anti-corruption layer (v1.2). Forced tool-use guarantees a tool *call*, not
+# schema-*perfect* JSON, and real models deviate: Haiku 4.5 returns citations as bare
+# strings, Opus 4.8 omits a self-score dimension or leaks its tool-call XML scaffolding
+# into the answer string ("...prose.</answer>\n<parameter name="citations">[...]"). These
+# helpers normalise the raw tool output to the clean contract the rest of the pipeline
+# assumes, so a deviation degrades honestly instead of crashing or shipping garbage.
+_SCAFFOLD_MARKER = re.compile(
+    r"</answer>|<parameter\s+name=|<function_calls>|</?invoke>|</function_calls>",
+    re.IGNORECASE,
+)
+_LEAKED_CITATIONS = re.compile(
+    r'<parameter\s+name="citations">\s*(\[.*\])', re.IGNORECASE | re.DOTALL
+)
+
+
+def _coerce_citations(citations: Any) -> list[dict]:
+    """Normalise the model's citations to a list of dicts.
+
+    A bare string (e.g. "nlisp-p3-c0") becomes {"source_id": <string>} so the citation
+    lint and the renderers — both of which call c.get("source_id") — never trip on a str.
+    Non-string, non-dict items can't be a citation and are dropped.
+    """
+    normalised: list[dict] = []
+    for citation in citations or []:
+        if isinstance(citation, dict):
+            normalised.append(citation)
+        elif isinstance(citation, str):
+            normalised.append({"source_id": citation})
+    return normalised
+
+
+def _strip_scaffolding(answer: Any) -> tuple[str, list[dict]]:
+    """Cut any leaked tool-call scaffolding off the answer text.
+
+    Returns (clean_answer, recovered_citations). When the model runs the answer value
+    past </answer> into the next <parameter> block, the prose before the marker is the
+    real answer; a citations array embedded in the leaked tail is recovered so grounding
+    isn't lost. A non-string answer (e.g. null) yields ("", []).
+    """
+    if not isinstance(answer, str):
+        return "", []
+    marker = _SCAFFOLD_MARKER.search(answer)
+    if marker is None:
+        return answer, []
+    clean = answer[: marker.start()].rstrip()
+    recovered: list[dict] = []
+    leaked = _LEAKED_CITATIONS.search(answer)
+    if leaked:
+        try:
+            parsed = json.loads(leaked.group(1))
+        except (ValueError, TypeError):
+            parsed = None
+        if isinstance(parsed, list):
+            recovered = _coerce_citations(parsed)
+    return clean, recovered
+
+
+def _normalise_self_score(self_score: Any) -> dict[str, float]:
+    """Ensure all four dimensions are present and in [0, 1].
+
+    A missing dimension defaults to 0.0 (conservative — biases toward the review flag
+    rather than crashing the strict aggregator); out-of-range or non-numeric values are
+    coerced and clamped.
+    """
+    source = self_score if isinstance(self_score, dict) else {}
+    normalised: dict[str, float] = {}
+    for dimension in _SCORE_DIMENSIONS:
+        try:
+            value = float(source.get(dimension, 0.0))
+        except (TypeError, ValueError):
+            value = 0.0
+        normalised[dimension] = min(1.0, max(0.0, value))
+    return normalised
 
 
 class AnswerGenerator:
@@ -156,8 +235,29 @@ class AnswerGenerator:
             )
 
         raw = tool_block.input
-        citations = raw.get("citations", [])
-        self_score = dict(raw.get("self_score", {}))
+
+        # Normalise the raw tool output before scoring (see the anti-corruption helpers
+        # above): strip any leaked scaffolding off the answer, coerce citations to dicts,
+        # and fill/clamp the self-score. A model deviation then degrades honestly.
+        raw_answer = raw.get("answer", "")
+        answer, recovered_citations = _strip_scaffolding(raw_answer)
+        citations = _coerce_citations(raw.get("citations", []))
+        self_score = _normalise_self_score(raw.get("self_score", {}))
+        needs_review_reason = raw.get("needs_review_reason")
+
+        # If the answer leaked tool-call scaffolding, the citations often went with it.
+        # Prefer the recovered set so grounding survives; if it can't be recovered, dock
+        # cites_policy and flag, so an unverifiable answer never passes as confident.
+        if answer != raw_answer:
+            logger.warning("Tool-call scaffolding leaked into the answer; stripped it")
+            if not citations and recovered_citations:
+                citations = recovered_citations
+            elif not citations:
+                self_score["cites_policy"] = max(0.0, self_score["cites_policy"] - 0.2)
+                needs_review_reason = needs_review_reason or (
+                    "Model output was malformed (tool-call formatting leaked into the "
+                    "answer) and citations could not be recovered; manual review needed."
+                )
 
         # Citation lint: if the model cited a source we didn't provide, log it and
         # dock cites_policy — a hallucinated citation is the opposite of grounded.
@@ -169,15 +269,13 @@ class AnswerGenerator:
         ]
         if hallucinated:
             logger.warning("Citations not in provided chunks: %s", hallucinated)
-            self_score["cites_policy"] = max(
-                0.0, self_score.get("cites_policy", 0.0) - 0.2
-            )
+            self_score["cites_policy"] = max(0.0, self_score["cites_policy"] - 0.2)
 
         return self._result(
-            answer=raw.get("answer", ""),
+            answer=answer,
             citations=citations,
             self_score=self_score,
-            needs_review_reason=raw.get("needs_review_reason"),
+            needs_review_reason=needs_review_reason,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             cache_read=cache_read,
