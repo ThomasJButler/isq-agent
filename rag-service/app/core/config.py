@@ -44,6 +44,14 @@ class Settings(BaseSettings):
     # rpm even at this width, but bounded so a huge questionnaire can't fan out unchecked.
     answer_concurrency: int = 5
 
+    # Confidence flagging thresholds (v1.2). The defaults are the audited baseline mirrored
+    # in app/confidence/aggregator.py; both are env-overridable (e.g. CONFIDENCE_FLAG_THRESHOLD
+    # on Render) so the flag sensitivity can be swept without a code change or redeploy-from-source.
+    confidence_flag_threshold: float = 0.6  # aggregate below this → flag
+    cites_policy_floor: float = (
+        0.5  # cites_policy below this → flag, even if aggregate is high
+    )
+
 
 settings = Settings()
 

@@ -9,6 +9,8 @@ The weights are public (here and in the README) so a reviewer can audit the bias
 grounding (cites_policy) is weighted heaviest because an ungrounded answer is the
 worst failure mode for an audit-facing tool; completeness weighs least because a
 partial-but-correct answer is recoverable where a complete-but-wrong one isn't.
+The weights stay locked; the two flag cut-offs default to the audited 0.6 / 0.5 but
+are Settings-backed (env-overridable) so the flag sensitivity can be swept for tuning.
 
 Two signals combine. Signal A is the LLM self-score: nuanced and multidimensional,
 but it can over-claim. Signal B is the top retrieved chunk's similarity: objective,
@@ -16,6 +18,8 @@ but flat. The LLM provides dimension; retrieval provides honesty.
 """
 
 from dataclasses import dataclass
+
+from app.core.config import settings
 
 # Dimension weights — sum to 1.0. Order reflects priority: grounding first, completeness last.
 WEIGHTS = {
@@ -25,8 +29,16 @@ WEIGHTS = {
     "complete": 0.15,  # fourth — partial-but-correct beats complete-but-wrong
 }
 
-AGGREGATE_THRESHOLD = 0.6  # aggregate below this → flag
-CITES_POLICY_FLOOR = 0.5  # cites_policy below this → flag, even if aggregate is high
+# Flag cut-offs. The audited defaults (0.6 / 0.5) live in app/core/config.py as Settings
+# fields and resolve here at startup, so the flag sensitivity is env-overridable (e.g.
+# CONFIDENCE_FLAG_THRESHOLD on Render) for tuning sweeps without a code change. The
+# retrieval sanity-check knobs below stay locked constants.
+AGGREGATE_THRESHOLD = (
+    settings.confidence_flag_threshold
+)  # aggregate below this → flag (default 0.6)
+CITES_POLICY_FLOOR = (
+    settings.cites_policy_floor
+)  # cites_policy below this → flag (default 0.5)
 TOP_CHUNK_SCORE_THRESHOLD = 0.7  # retrieval sanity check fires below this score...
 OVER_CLAIM_PENALTY = 0.2  # ...downgrading an over-claiming cites_policy by this much
 
