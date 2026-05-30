@@ -10,6 +10,7 @@ QuestionExtractor + answer assembler the rest of the pipeline uses. The envelope
 is the canonical shape every renderer + the dashboard consume.
 """
 
+import asyncio
 import logging
 import shutil
 import tempfile
@@ -39,6 +40,10 @@ logger = logging.getLogger(__name__)
 # round it out for the historical-ISQ formats.
 _SUPPORTED_SUFFIXES = {".pdf", ".docx", ".xlsx"}
 
+# Stream uploads to disk in 64 KB chunks so the size cap is enforced as we read, rather
+# than buffering the whole (untrusted) body into memory first.
+_CHUNK_BYTES = 64 * 1024
+
 # Transient Anthropic failures worth a retry (mirrors /extract-questions): map to 503.
 _TRANSIENT_LLM = (
     APIConnectionError,
@@ -64,7 +69,9 @@ async def create_run_from_file(
     if request_id:
         response.headers["X-Request-Id"] = request_id
 
-    # Cost/abuse guard: reject an oversized upload before reading it (v1.1).
+    # Cost/abuse guard: fast-reject when the client honestly declares an oversized body.
+    # file.size is advisory only — browsers omit Content-Length on multipart parts, so it
+    # is often None; the real enforcement is the streamed cap during the read below (v1.1).
     max_bytes = settings.max_upload_mb * 1024 * 1024
     if file.size is not None and file.size > max_bytes:
         raise HTTPException(
@@ -83,11 +90,23 @@ async def create_run_from_file(
     tmp_dir = Path(tempfile.mkdtemp(prefix="isq-ingest-"))
     try:
         tmp_path = tmp_dir / f"upload{suffix}"
+        # Stream to disk in chunks, enforcing the cap as we go so an upload that lies about
+        # (or omits) its size can't buffer unbounded into memory before any check runs.
+        total = 0
         with open(tmp_path, "wb") as fh:
-            fh.write(await file.read())
+            while chunk := await file.read(_CHUNK_BYTES):
+                total += len(chunk)
+                if total > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large; the limit is {settings.max_upload_mb} MB.",
+                    )
+                fh.write(chunk)
 
         try:
-            processed = process_document(tmp_path)
+            # process_document parses the PDF/DOCX/XLSX synchronously; offload it so the
+            # blocking read doesn't stall the event loop (and every other request on it).
+            processed = await asyncio.to_thread(process_document, tmp_path)
         except (ValueError, DocumentProcessingError) as exc:
             logger.error("Failed to read uploaded document", exc_info=True)
             raise HTTPException(
@@ -108,7 +127,11 @@ async def create_run_from_file(
             )
 
         try:
-            extracted = QuestionExtractor().extract(source_text, filename)
+            # The extractor makes a blocking Anthropic call; offload it off the event loop.
+            extractor = QuestionExtractor()
+            extracted = await asyncio.to_thread(
+                extractor.extract, source_text, filename
+            )
         except _TRANSIENT_LLM as exc:
             logger.error("Anthropic unavailable during extraction", exc_info=True)
             raise HTTPException(
@@ -134,8 +157,14 @@ async def create_run_from_file(
                 detail="No questions were found in the document.",
             )
 
-        return assemble_and_store_run(
-            origin=origin, filename=filename, received_at=None, questions=questions
+        # assemble_and_store_run runs the full per-question Retriever -> AnswerGenerator
+        # loop (many blocking LLM calls); offload the whole thing off the event loop.
+        return await asyncio.to_thread(
+            assemble_and_store_run,
+            origin=origin,
+            filename=filename,
+            received_at=None,
+            questions=questions,
         )
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
