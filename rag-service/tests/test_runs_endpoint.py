@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.core.config import settings
 from app.main import app
 from app.runs.store import run_store
 
@@ -133,6 +134,18 @@ class TestCreateRunFromFile:
             "/runs", files={"file": ("notes.txt", b"hello", "text/plain")}
         )
         assert resp.status_code == 415
+
+    def test_rejects_oversized_upload(self, monkeypatch):
+        # Shrink the cap so a small body trips it. The size guard must reject with 413
+        # before any extraction or answering runs — the upload is streamed and the
+        # running total is capped as it reads, so an upload that omits/lies about its
+        # size can't buffer unbounded into memory first (v1.1 cost guard, #36 fix).
+        monkeypatch.setattr(settings, "max_upload_mb", 0.001)  # ~1 KB cap
+        oversized = b"%PDF-1.4 " + b"A" * (20 * 1024)
+        resp = client.post(
+            "/runs", files={"file": ("big.pdf", oversized, "application/pdf")}
+        )
+        assert resp.status_code == 413
 
     @patch("app.api.runs.QuestionExtractor")
     @patch("app.api.runs.process_document")
