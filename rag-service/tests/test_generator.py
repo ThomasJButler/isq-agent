@@ -463,3 +463,51 @@ def test_generate_flags_when_scaffolding_leak_unrecoverable(mock_anthropic):
     # Grounding could not be verified → docked and flagged for a human.
     assert result["self_score"]["cites_policy"] == pytest.approx(0.7)
     assert result["needs_review_reason"]
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_null_answer_is_not_treated_as_a_leak(mock_anthropic):
+    """An explicit null answer collapses to "" without spuriously firing the leak path."""
+    from app.rag.generator import AnswerGenerator
+
+    _mock_anthropic_submit_answer(
+        mock_anthropic,
+        answer=None,
+        citations=[{"source_id": "nlisp-p3-c0", "text_snippet": "MFA is mandatory"}],
+        self_score={
+            "cites_policy": 1.0,
+            "on_topic": 1.0,
+            "vendor_tone": 0.9,
+            "complete": 1.0,
+        },
+    )
+
+    result = AnswerGenerator(api_key="test-key").generate(
+        "Q?", [_chunk(source_id="nlisp-p3-c0")]
+    )
+
+    assert result["answer"] == ""
+    # No scaffolding was stripped, so cites_policy is not docked and no leak flag is set.
+    assert result["self_score"]["cites_policy"] == 1.0
+    assert result["needs_review_reason"] is None
+
+
+@patch("app.rag.generator.Anthropic")
+def test_generate_recovers_citations_past_a_trailing_parameter(mock_anthropic):
+    """Citation recovery parses just the array and ignores a later bracket-bearing block."""
+    from app.rag.generator import AnswerGenerator
+
+    leaked = (
+        "Access is least-privilege.</answer>\n"
+        '<parameter name="citations">[{"source_id": "nlisp-p3-c0"}]</parameter>\n'
+        '<parameter name="notes">see clause [1] for detail</parameter>'
+    )
+    _mock_anthropic_submit_answer(mock_anthropic, answer=leaked, citations=[])
+
+    result = AnswerGenerator(api_key="test-key").generate(
+        "Q?", [_chunk(source_id="nlisp-p3-c0")]
+    )
+
+    assert result["answer"] == "Access is least-privilege."
+    # A greedy regex would overshoot to the "[1]" bracket and lose these; raw_decode does not.
+    assert result["citations"] == [{"source_id": "nlisp-p3-c0"}]

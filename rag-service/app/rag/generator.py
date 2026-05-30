@@ -56,9 +56,7 @@ _SCAFFOLD_MARKER = re.compile(
     r"</answer>|<parameter\s+name=|<function_calls>|</?invoke>|</function_calls>",
     re.IGNORECASE,
 )
-_LEAKED_CITATIONS = re.compile(
-    r'<parameter\s+name="citations">\s*(\[.*\])', re.IGNORECASE | re.DOTALL
-)
+_CITATIONS_PARAM = re.compile(r'<parameter\s+name="citations">', re.IGNORECASE)
 
 
 def _coerce_citations(citations: Any) -> list[dict]:
@@ -92,14 +90,20 @@ def _strip_scaffolding(answer: Any) -> tuple[str, list[dict]]:
         return answer, []
     clean = answer[: marker.start()].rstrip()
     recovered: list[dict] = []
-    leaked = _LEAKED_CITATIONS.search(answer)
-    if leaked:
-        try:
-            parsed = json.loads(leaked.group(1))
-        except (ValueError, TypeError):
-            parsed = None
-        if isinstance(parsed, list):
-            recovered = _coerce_citations(parsed)
+    cite_param = _CITATIONS_PARAM.search(answer)
+    if cite_param:
+        # Parse the JSON array starting at its opening bracket. raw_decode stops at the
+        # array's own close, so trailing scaffolding (a following <parameter> block, even
+        # one containing brackets) is ignored — more robust than a greedy regex.
+        tail = answer[cite_param.end() :]
+        bracket = tail.find("[")
+        if bracket != -1:
+            try:
+                parsed, _ = json.JSONDecoder().raw_decode(tail[bracket:])
+            except (ValueError, TypeError):
+                parsed = None
+            if isinstance(parsed, list):
+                recovered = _coerce_citations(parsed)
     return clean, recovered
 
 
@@ -239,15 +243,17 @@ class AnswerGenerator:
         # Normalise the raw tool output before scoring (see the anti-corruption helpers
         # above): strip any leaked scaffolding off the answer, coerce citations to dicts,
         # and fill/clamp the self-score. A model deviation then degrades honestly.
-        raw_answer = raw.get("answer", "")
+        # `or ""` collapses an explicit null answer to "" so it doesn't read as a leak.
+        raw_answer = raw.get("answer") or ""
         answer, recovered_citations = _strip_scaffolding(raw_answer)
         citations = _coerce_citations(raw.get("citations", []))
         self_score = _normalise_self_score(raw.get("self_score", {}))
         needs_review_reason = raw.get("needs_review_reason")
 
         # If the answer leaked tool-call scaffolding, the citations often went with it.
-        # Prefer the recovered set so grounding survives; if it can't be recovered, dock
-        # cites_policy and flag, so an unverifiable answer never passes as confident.
+        # Prefer the recovered set so grounding survives; if they can't be recovered, dock
+        # cites_policy and set a review reason, so the now-uncited answer is flagged for a
+        # human (the review reason fires the aggregator's flag) rather than passing as confident.
         if answer != raw_answer:
             logger.warning("Tool-call scaffolding leaked into the answer; stripped it")
             if not citations and recovered_citations:
