@@ -3,7 +3,7 @@
 // answers without having to find a blank ISQ first.
 //
 // These three are OUR OWN fictional companies with realistic, full-length (20-question)
-// supplier security questionnaires — deliberately NOT the assessment's source files, which
+// supplier security questionnaires, deliberately NOT the assessment's source files, which
 // stay private. Each set is written to map onto Northstar Labs' policy topics (infosec
 // policy, MFA/access control, encryption, incident response, BCDR/RTO-RPO, secure SDLC,
 // audit logs, BYOD/remote, certifications) so the answers ground well; the certification
@@ -28,7 +28,7 @@ export const EXAMPLES: ExampleQuestionnaire[] = [
     size: 24 * 1024,
     source: {
       source_format: "pdf",
-      source_text: `Supplier Information Security Questionnaire — Northwind Pay
+      source_text: `Supplier Information Security Questionnaire: Northwind Pay
 
 1. Do you maintain a formal, board-approved Information Security Policy, and how often is it reviewed?
 2. Is multi-factor authentication enforced for all staff access to systems that process or store customer or payment data?
@@ -59,7 +59,7 @@ export const EXAMPLES: ExampleQuestionnaire[] = [
     size: 22 * 1024,
     source: {
       source_format: "pdf",
-      source_text: `Vendor Security Assessment — Caldera Health
+      source_text: `Vendor Security Assessment: Caldera Health
 
 1. Do you maintain a formal Information Security Policy approved by senior management, and how often is it reviewed?
 2. How is patient and customer personal data protected through encryption, both in transit and at rest?
@@ -90,7 +90,7 @@ export const EXAMPLES: ExampleQuestionnaire[] = [
     size: 26 * 1024,
     source: {
       source_format: "pdf",
-      source_text: `Operational Technology Supplier Security Questionnaire — Tidewell Logistics
+      source_text: `Operational Technology Supplier Security Questionnaire: Tidewell Logistics
 
 1. Do you maintain a formal Information Security Policy, and is it reviewed at least annually?
 2. Is your operational technology (OT) and warehouse-automation network segmented from your corporate IT network?
